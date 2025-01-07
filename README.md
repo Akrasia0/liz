@@ -17,7 +17,7 @@ Liz isn't a library - it's a starting point. Rather than creating abstractions a
 Liz uses Express-style middleware for a clear, linear processing flow:
 
 ```
-Input → Validate → Load Memories → Build Context → Store Memory → Route → Handler
+Input → Middleware → Router → Handler
 ```
 
 Each step is a middleware function that you can modify:
@@ -184,6 +184,19 @@ TWITTER_PASSWORD="your-password"
 TWITTER_EMAIL="your-email"
 TWITTER_2FA_SECRET="optional-2fa-secret"
 ```
+
+## Coming Soon
+
+1. **Vector Store Template**
+
+   - Example implementation with Pinecone
+   - Semantic search across memories
+   - Easy to swap vector store backends
+
+2. **Twitter Bot Template** ✓
+   - Basic Twitter bot implementation ✓
+   - Interaction handling examples ✓
+   - Thread management utilities ✓
 
 ## Contributing
 
