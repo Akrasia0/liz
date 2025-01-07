@@ -1,176 +1,141 @@
 # Liz
 
-An Express-style framework for processing agent interactions through middleware chains. The framework uses a req/res/next pattern familiar to Express developers while maintaining sophisticated agent and memory management capabilities.
+A lightweight, Express-style template for building AI agents. Inspired by AI16Z's Eliza but focused on simplicity and developer control.
 
-## Features
+## Philosophy
 
-- 🔄 Express-style middleware system
-- 🤖 Flexible agent configuration
-- 💾 Built-in memory management
-- 🧠 LLM utilities for decision making
-- 🛣️ Dynamic routing based on context
-- 🔌 Extensible architecture
+Liz isn't a library - it's a starting point. Rather than creating abstractions and asking you to learn them, Liz provides a minimal, Express-style template that you can freely modify. Many modern agent frameworks add layers of abstraction between developers and LLMs, making it harder to understand and control what's happening. Liz takes the opposite approach:
 
-## Installation
+- **Fork & Hack**: Clone the repo and modify it to fit your needs
+- **Transparent**: Every part of the pipeline is visible, modifiable and linear
+- **Express-style**: Familiar middleware pattern that's easy to understand
+- **Developer-first**: Work directly with LLMs instead of hiding them behind abstractions
+- **Lightweight**: Small, focused codebase that you can build upon
 
-```bash
-npm install liz
+## Architecture
+
+Liz uses Express-style middleware for a clear, linear processing flow:
+
+```
+Input → Validation → Memory Creation → Load History → Context Wrapping → Routing → Handler (handlers can be as complex as you want)
 ```
 
-## Quick Start
+Each step is a middleware function that you can modify:
 
 ```typescript
-import {
-	AgentFramework,
-	standardMiddleware,
-	Agent,
-	Character,
-	InputObject,
-	InputSource,
-	InputType,
-} from "liz";
-
-// Create your agent implementation
-class MyAgent implements Agent {
-	constructor(private character: Character) {}
-
-	getAgentContext(): string {
-		return `Character: ${this.character.name}\nSystem: ${this.character.system}`;
-	}
-
-	getRoutes() {
-		return new Map([
-			[
-				"conversation",
-				{
-					name: "conversation",
-					description: "Handle natural conversation",
-					handler: async (context: string) => {
-						// Implement conversation handling
-					},
-				},
-			],
-		]);
-	}
-}
-
-// Initialize framework
-const app = new AgentFramework();
-
-// Use standard middleware stack
-standardMiddleware.forEach((middleware) => app.use(middleware));
-
-// Add error handling
-app.onError(async (error, req, res) => {
-	console.error("Error:", error);
-});
-
-// Create agent instance
-const agent = new MyAgent({
-	name: "Assistant",
-	system: "You are a helpful assistant.",
-	// ... other character config
-});
-
-// Process input
-const input: InputObject = {
-	source: InputSource.DISCORD,
-	userId: "user123",
-	agentId: "Assistant",
-	roomId: "room456",
-	type: InputType.TEXT,
-	text: "Hello!",
-};
-
-await app.process(input, agent);
-```
-
-## Middleware System
-
-The framework uses a middleware chain system similar to Express. Each middleware function has access to the request object, response object, and next function.
-
-```typescript
-type AgentMiddleware = (
-	req: AgentRequest,
-	res: AgentResponse,
-	next: () => Promise<void>
-) => Promise<void>;
-```
-
-### Standard Middleware Stack
-
-1. `validateInput`: Validates incoming request data
-2. `createMemory`: Stores the input as a memory
-3. `loadMemories`: Loads relevant conversation history
-4. `wrapContext`: Combines memories, agent context, and current input
-5. `router`: Routes to appropriate handler based on context
-
-### Custom Middleware
-
-Create your own middleware:
-
-```typescript
+// Add your own middleware
 const customMiddleware: AgentMiddleware = async (req, res, next) => {
-	// Pre-processing
-	console.log("Processing request:", req.input);
+	// Modify request
+	req.customData = await someProcess();
 
+	// Continue chain
 	await next();
 
-	// Post-processing
-	console.log("Request processed");
+	// Post-process
+	console.log("Request handled");
 };
 
 app.use(customMiddleware);
 ```
 
-## Database Setup
+## How to Use
 
-The framework uses Prisma for database management. Set up your database:
+1. **Fork the Template**
 
-```bash
-# Generate Prisma client
-npm run prisma:generate
+   - Start by forking this repository
+   - Modify the code directly to fit your needs
 
-# Run migrations
-npm run prisma:migrate
+2. **Define Your Agent**
 
-# (Optional) Open Prisma Studio
-npm run prisma:studio
+```typescript
+const myCharacter: Character = {
+	name: "Assistant",
+	system: "You are a helpful assistant.",
+	bio: ["Your agent's backstory..."],
+	// ... other character details
+};
+
+const agent = new BaseAgent(myCharacter);
 ```
 
-## Environment Variables
+3. **Add Route Handlers**
 
-Create a .env file:
-
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/dbname"
-OPENAI_API_KEY="your-openai-key"
+```typescript
+agent.addRoute({
+	name: "conversation",
+	description: "Handle natural conversation",
+	handler: async (context) => {
+		const response = await llm.getTextFromLLM(context, "your-chosen-model");
+		console.log(response);
+	},
+});
 ```
 
-## Development
+4. **Modify the Pipeline**
+
+- Add new middleware in `src/middleware/`
+- Modify existing middleware
+- Change the processing order
+
+## Example Implementation
+
+Check out `src/example.ts` for a complete implementation of a business advisor agent. Use it as a reference for building your own agents.
+
+## Folder Structure
+
+```
+src/
+├── middleware/       # Pipeline steps
+├── agent/           # Agent implementation
+├── framework/       # Core Express-like system
+├── types/           # TypeScript definitions
+├── utils/           # Utilities (LLM, DB, etc.)
+└── example.ts       # Example implementation
+```
+
+## Coming Soon
+
+1. **Vector Store Template**
+
+   - Example implementation with Pinecone
+   - Semantic search across memories
+   - Easy to swap vector store backends
+
+2. **Twitter Bot Template**
+   - Basic Twitter bot implementation
+   - Interaction handling examples
+   - Thread management utilities
+
+## Getting Started
 
 ```bash
-# Install dependencies
-npm install
-
-# Run in development mode
+pnpm install
+pnpm run build
 npm run dev
 
-# Build
-npm run build
-
-# Start production server
-npm start
 ```
 
-## License
+## Environment Setup
 
-MIT
+Copy `.env.example` to `.env` and fill in your values:
+
+```bash
+DATABASE_URL="postgresql://user:password@localhost:5432/dbname"
+OPENAI_API_KEY="your-openai-key"
+OPENROUTER_API_KEY="your-openrouter-key"
+APP_URL="http://localhost:3000"
+```
 
 ## Contributing
+
+While Liz is meant to be forked and modified, we welcome contributions to the base template:
 
 1. Fork the repository
 2. Create your feature branch
 3. Commit your changes
 4. Push to the branch
 5. Create a Pull Request
+
+## License
+
+MIT
