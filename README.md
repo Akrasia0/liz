@@ -1,6 +1,6 @@
 # Liz
 
-A lightweight, Express-style template for building AI agents. Inspired by AI16Z's Eliza but focused on simplicity and developer control.
+A lightweight, Express-style template for building AI agents with integrated social capabilities. Inspired by AI16Z's Eliza but focused on simplicity and developer control.
 
 ## Philosophy
 
@@ -17,7 +17,7 @@ Liz isn't a library - it's a starting point. Rather than creating abstractions a
 Liz uses Express-style middleware for a clear, linear processing flow:
 
 ```
-Input → Middlewares → Routing → Handler (handlers can be as complex as you want)
+Input → Validate → Load Memories → Build Context → Store Memory → Route → Handler
 ```
 
 Each step is a middleware function that you can modify:
@@ -27,16 +27,38 @@ Each step is a middleware function that you can modify:
 const customMiddleware: AgentMiddleware = async (req, res, next) => {
 	// Modify request
 	req.customData = await someProcess();
-
 	// Continue chain
 	await next();
-
 	// Post-process
 	console.log("Request handled");
 };
-
 app.use(customMiddleware);
 ```
+
+## Built-in Features
+
+### Memory System
+
+- SQLite-based persistent storage using Prisma
+- Automatic memory loading for context
+- Memory creation for both user inputs and agent responses
+- Indexed by room, user, and agent IDs
+
+### Twitter Integration
+
+- Automated posting with configurable intervals
+- Mention monitoring and response handling
+- Thread building and management
+- Rate limiting and retry mechanisms
+- Conversation context building
+
+### LLM Integration
+
+- OpenAI integration with type-safe responses
+- OpenRouter API support for multiple models
+- Structured output parsing with Zod
+- Different model sizes for different tasks
+- Built-in prompt templates
 
 ## How to Use
 
@@ -50,11 +72,20 @@ app.use(customMiddleware);
 ```typescript
 const myCharacter: Character = {
 	name: "Assistant",
+	agentId: "unique_id",
 	system: "You are a helpful assistant.",
 	bio: ["Your agent's backstory..."],
-	// ... other character details
+	lore: ["Additional background..."],
+	messageExamples: [], // Example conversations
+	postExamples: [], // Example social posts
+	topics: ["expertise1", "expertise2"],
+	style: {
+		all: ["consistent", "helpful"],
+		chat: ["conversational"],
+		post: ["engaging"],
+	},
+	adjectives: ["friendly", "knowledgeable"],
 };
-
 const agent = new BaseAgent(myCharacter);
 ```
 
@@ -64,55 +95,72 @@ const agent = new BaseAgent(myCharacter);
 agent.addRoute({
 	name: "conversation",
 	description: "Handle natural conversation",
-	handler: async (context) => {
-		const response = await llm.getTextFromLLM(context, "your-chosen-model");
-		console.log(response);
+	handler: async (context, req, res) => {
+		const response = await llmUtils.getTextFromLLM(
+			context,
+			"anthropic/claude-3-sonnet"
+		);
+		await res.send(response);
 	},
 });
 ```
 
-4. **Modify the Pipeline**
+4. **Set Up Twitter Bot (Optional)**
 
-- Add new middleware in `src/middleware/`
-- Modify existing middleware
-- Change the processing order
+```typescript
+const twitter = new TwitterClient(agent, {
+	username: process.env.TWITTER_USERNAME,
+	password: process.env.TWITTER_PASSWORD,
+	email: process.env.TWITTER_EMAIL,
+	retryLimit: 3,
+	postIntervalHours: 4,
+});
 
-## Example Implementation
-
-Check out `src/example.ts` for a complete implementation of a business advisor agent. Use it as a reference for building your own agents.
+await twitter.start();
+```
 
 ## Folder Structure
 
 ```
 src/
 ├── middleware/       # Pipeline steps
+│   ├── validate-input.ts
+│   ├── load-memories.ts
+│   ├── wrap-context.ts
+│   ├── create-memory.ts
+│   └── router.ts
 ├── agent/           # Agent implementation
 ├── framework/       # Core Express-like system
-├── types/           # TypeScript definitions
-├── utils/           # Utilities (LLM, DB, etc.)
-└── example.ts       # Example implementation
+├── types/          # TypeScript definitions
+├── utils/          # Utilities (LLM, DB, etc.)
+└── example/        # Example implementations
+    ├── example.ts
+    └── test-twitter.js
+
+clients/
+└── twitter/        # Twitter client implementation
+    ├── client.js
+    ├── base.js
+    └── utils.js
+
+prisma/             # Database schema and migrations
+└── schema.prisma
 ```
-
-## Coming Soon
-
-1. **Vector Store Template**
-
-   - Example implementation with Pinecone
-   - Semantic search across memories
-   - Easy to swap vector store backends
-
-2. **Twitter Bot Template**
-   - Basic Twitter bot implementation
-   - Interaction handling examples
-   - Thread management utilities
 
 ## Getting Started
 
 ```bash
+# Install dependencies
 pnpm install
-pnpm run build
-npm run dev
 
+# Copy environment example
+cp .env.example .env
+
+# Initialize database
+npm run init-db
+
+# Start development
+npm run dev
 ```
 
 ## Environment Setup
@@ -120,10 +168,21 @@ npm run dev
 Copy `.env.example` to `.env` and fill in your values:
 
 ```bash
-DATABASE_URL="postgresql://user:password@localhost:5432/dbname"
+# Database
+DATABASE_URL="file:./prisma/dev.db"
+
+# LLM APIs
 OPENAI_API_KEY="your-openai-key"
 OPENROUTER_API_KEY="your-openrouter-key"
+
+# Application
 APP_URL="http://localhost:3000"
+
+# Twitter (Optional)
+TWITTER_USERNAME="your-username"
+TWITTER_PASSWORD="your-password"
+TWITTER_EMAIL="your-email"
+TWITTER_2FA_SECRET="optional-2fa-secret"
 ```
 
 ## Contributing
