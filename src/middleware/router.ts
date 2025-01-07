@@ -20,14 +20,19 @@ export const router: AgentMiddleware = async (req, res, next) => {
 			.join("\n");
 
 		const prompt = `
-Context:
-${req.context}
+You are functioning as a request router for an AI agent with the following system description:
 
-Given the following context and available routes, select the most appropriate route to handle this interaction.
-Consider the user's input and conversation history carefully.
+${req.agent.getSystemPrompt()}
+
+Your task is to analyze incoming messages and route them to the most appropriate handler based on the available routes below. Consider the agent's purpose and capabilities when making this decision.
 
 Available Routes:
 ${routeDescriptions}
+
+Recent Context and Current Request:
+${req.context}
+
+Based on the agent's system description and the available routes, select the most appropriate route to handle this interaction.
 
 Respond with a JSON object containing:
 - selectedRoute: The name of the selected route
@@ -38,9 +43,8 @@ Respond with a JSON object containing:
 		const routeDecision = await llmUtils.getObjectFromLLM(
 			prompt,
 			routeSchema,
-			LLMSize.SMALL
+			LLMSize.LARGE
 		);
-		// console.log({ prompt, routeDecision });
 
 		const handler = routes.get(routeDecision.selectedRoute);
 		if (!handler) {
@@ -57,7 +61,7 @@ Respond with a JSON object containing:
 		}
 
 		try {
-			await handler.handler(req.context || "");
+			await handler.handler(req.context || "", req);
 			await next();
 		} catch (error) {
 			await res.error(

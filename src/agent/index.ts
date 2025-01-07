@@ -24,6 +24,10 @@ export class BaseAgent implements Agent {
 			.join("\n\n");
 	}
 
+	public getSystemPrompt(): string {
+		return this.character.system;
+	}
+
 	public addRoute(route: Route): void {
 		if (this.routes.has(route.name)) {
 			throw new Error(`Route with name '${route.name}' already exists`);
@@ -64,8 +68,6 @@ export class BaseAgent implements Agent {
 		).join(", ");
 
 		return `
-${this.character.system}
-
 Bio Context:
 ${bioContext}
 

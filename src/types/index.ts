@@ -95,4 +95,6 @@ export type AgentMiddleware = (
 export interface Agent {
 	getAgentContext(): string;
 	getRoutes(): Map<string, Route>;
+	getSystemPrompt(): string;
+	addRoute(route: Route): void;
 }
