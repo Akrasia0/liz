@@ -17,7 +17,7 @@ Liz isn't a library - it's a starting point. Rather than creating abstractions a
 Liz uses Express-style middleware for a clear, linear processing flow:
 
 ```
-Input → Validation → Memory Creation → Load History → Context Wrapping → Routing → Handler (handlers can be as complex as you want)
+Input → Middlewares → Routing → Handler (handlers can be as complex as you want)
 ```
 
 Each step is a middleware function that you can modify:
