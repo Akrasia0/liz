@@ -20,7 +20,7 @@ export const router: AgentMiddleware = async (req, res, next) => {
 			.join("\n");
 
 		const prompt = `
-You are functioning as a request router for an AI agent with the following system description:
+You are functioning as a request router for an AI agent with the following system prompt:
 
 ${req.agent.getSystemPrompt()}
 

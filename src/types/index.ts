@@ -102,4 +102,5 @@ export interface Agent {
 	getRoutes(): Map<string, Route>;
 	getSystemPrompt(): string;
 	addRoute(route: Route): void;
+	getAgentId(): string;
 }

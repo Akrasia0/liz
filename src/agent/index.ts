@@ -100,8 +100,4 @@ ${adjectiveContext}
 	public getRoutes(): Map<string, Route> {
 		return this.routes;
 	}
-
-	public getId(): string {
-		return this.character.name;
-	}
 }

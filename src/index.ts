@@ -22,7 +22,7 @@ export {
 	loadMemories,
 	wrapContext,
 	router,
-	createMemory,
+	createMemoryFromInput,
 	standardMiddleware,
 } from "./middleware";
 

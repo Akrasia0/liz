@@ -1,7 +1,11 @@
 import { AgentMiddleware } from "../types";
 import { prisma } from "../utils/db";
 
-export const createMemory: AgentMiddleware = async (req, res, next) => {
+export const createMemoryFromInput: AgentMiddleware = async (
+	req,
+	res,
+	next
+) => {
 	try {
 		// Store the input as a memory
 		await prisma.memory.create({
