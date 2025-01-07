@@ -1,0 +1,41 @@
+{
+	"name": "liz",
+	"version": "1.0.0",
+	"description": "Express-style agent framework for processing agent interactions through middleware chains",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"scripts": {
+		"build": "tsc",
+		"prestart": "npm run build && npm run db:init",
+		"start": "node dist/example.js",
+		"predev": "npm run build && npm run db:init",
+		"dev": "ts-node dist/example.js",
+		"dev:watch": "ts-node src/example.ts",
+		"test": "jest",
+		"db:init": "node dist/utils/initDb.js",
+		"db:reset": "rm -f prisma/dev.db && npm run db:init",
+		"prisma:generate": "prisma generate",
+		"prisma:migrate": "prisma migrate dev",
+		"prisma:studio": "prisma studio"
+	},
+	"keywords": [
+		"agent",
+		"framework",
+		"middleware",
+		"llm",
+		"ai"
+	],
+	"author": "",
+	"license": "MIT",
+	"dependencies": {
+		"@prisma/client": "^5.7.0",
+		"openai": "^4.0.0",
+		"zod": "^3.22.4"
+	},
+	"devDependencies": {
+		"@types/node": "^20.10.4",
+		"prisma": "^5.7.0",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.3.3"
+	}
+}

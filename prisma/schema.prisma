@@ -1,0 +1,23 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Memory {
+  id        String   @id @default(uuid())
+  userId    String
+  agentId   String
+  roomId    String
+  content   String   // Keep as String for SQLite
+  type      String
+  generator String   // "llm" or "external"
+  createdAt DateTime @default(now())
+
+  @@index([roomId])
+  @@index([userId, agentId])
+  @@index([type])
+}
