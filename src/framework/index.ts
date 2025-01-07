@@ -1,3 +1,4 @@
+import express from "express";
 import {
 	AgentMiddleware,
 	AgentRequest,
@@ -28,11 +29,18 @@ export class AgentFramework {
 		return this;
 	}
 
-	private createResponse(req: AgentRequest): AgentResponse {
+	private createResponse(
+		req: AgentRequest,
+		expressRes: express.Response
+	): AgentResponse {
 		const res: AgentResponse = {
 			send: async (content: any) => {
-				// Implementation would depend on the input source
 				console.log("Sending response:", content);
+				expressRes.send(content);
+			},
+			json: async (content: any) => {
+				console.log("Sending response:", content);
+				expressRes.json(content);
 			},
 			error: async (error: any) => {
 				// Handle error based on input source
@@ -78,13 +86,17 @@ export class AgentFramework {
 		}
 	}
 
-	async process(input: InputObject, agent: Agent): Promise<void> {
+	async process(
+		input: InputObject,
+		agent: Agent,
+		expressRes: express.Response
+	): Promise<void> {
 		const req: AgentRequest = {
 			input,
 			agent,
 		};
 
-		const res = this.createResponse(req);
+		const res = this.createResponse(req, expressRes);
 
 		try {
 			await this.executeMiddleware(0, req, res);

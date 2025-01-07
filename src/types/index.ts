@@ -33,6 +33,7 @@ export interface InputObject {
 }
 
 export interface Character {
+	agentId: string;
 	name: string;
 	system: string;
 	bio: string[];
@@ -59,9 +60,12 @@ export interface Character {
 export interface Route {
 	name: string;
 	description: string;
-	handler: (context: string) => Promise<void>;
+	handler: (
+		context: string,
+		req: AgentRequest,
+		res: AgentResponse
+	) => Promise<void>;
 }
-
 export interface AgentRequest {
 	input: InputObject;
 	agent: Agent;

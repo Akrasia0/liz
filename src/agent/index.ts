@@ -24,6 +24,10 @@ export class BaseAgent implements Agent {
 			.join("\n\n");
 	}
 
+	public getAgentId(): string {
+		return this.character.agentId;
+	}
+
 	public getSystemPrompt(): string {
 		return this.character.system;
 	}

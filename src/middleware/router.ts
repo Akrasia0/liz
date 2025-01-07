@@ -61,7 +61,7 @@ Respond with a JSON object containing:
 		}
 
 		try {
-			await handler.handler(req.context || "", req);
+			await handler.handler(req.context || "", req, res);
 			await next();
 		} catch (error) {
 			await res.error(

@@ -30,4 +30,4 @@ export {
 export { LLMUtils } from "./utils/llm";
 
 // Example implementation
-export * as example from "./example";
+export * as example from "./example/example";
