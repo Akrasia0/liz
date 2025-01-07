@@ -10,17 +10,15 @@ function formatMemories(memories: Memory[] | undefined): string {
 		.map((memory) => {
 			try {
 				const content = JSON.parse(memory.content);
-
-				if (memory.type === "user") {
+				if (memory.generator === "external") {
 					return `[${memory.createdAt.toISOString()}] User ${memory.userId}: ${
 						content.text
 					}`;
-				} else if (memory.type === "agent") {
-					return `[${memory.createdAt.toISOString()}] Agent ${
-						memory.agentId
-					}: ${content}`;
+				} else if (memory.generator === "llm") {
+					return `[${memory.createdAt.toISOString()}] You: ${content.text}`;
 				}
 			} catch (e) {
+				console.log(e);
 				return `[${memory.createdAt.toISOString()}] Error parsing memory: ${
 					memory.content
 				}`;
@@ -52,6 +50,7 @@ ${req.agent.getAgentContext()}
 
 ${formatInput(req.input)}
 `.trim();
+		console.log(req.context);
 
 		await next();
 	} catch (error) {

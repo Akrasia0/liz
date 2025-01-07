@@ -37,7 +37,7 @@ export function createLoadMemoriesMiddleware(
 						type: memory.type,
 						createdAt: memory.createdAt,
 						generator: memory.generator,
-						content: memory.content, // Now automatically parsed as JSON
+						content: memory.content,
 					} as Memory)
 			);
 

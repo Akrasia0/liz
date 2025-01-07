@@ -12,6 +12,8 @@ import { BaseAgent } from "../agent";
 import { LLMUtils } from "../utils/llm";
 import { z } from "zod";
 import { prisma } from "../utils/db";
+import readline from "readline";
+import fetch from "node-fetch";
 
 // Initialize Express and LLM utils
 const app: Express = express();
@@ -53,9 +55,10 @@ const sternCharacter: Character = {
 	routes: [],
 };
 
-// Initialize agent
+// Initialize agent(s)
 const stern = new BaseAgent(sternCharacter);
 const agents = [stern];
+
 // Add routes. In real usecases, this would be a imported route from a different file
 stern.addRoute({
 	name: "conversation",
@@ -73,7 +76,7 @@ stern.addRoute({
 				roomId: req.input.roomId,
 				type: "text",
 				generator: "llm",
-				content: response,
+				content: JSON.stringify({ text: response }),
 			},
 		});
 
@@ -108,21 +111,62 @@ app.post("/agent/input", (req: Request, res: Response) => {
 	}
 });
 
+// CLI Interface
+async function startCLI() {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout,
+	});
+
+	console.log("\nStern Business Advisor CLI");
+	console.log("=========================");
+
+	async function prompt() {
+		rl.question("\nYou: ", async (text) => {
+			try {
+				const response = await fetch("http://localhost:3000/agent/input", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						input: {
+							agentId: "stern",
+							userId: "cli_user",
+							text: text,
+						},
+					}),
+				});
+
+				const data = await response.json();
+				console.log("\nStern:", data);
+				prompt();
+			} catch (error) {
+				console.error("\nError:", error);
+				prompt();
+			}
+		});
+	}
+
+	prompt();
+}
+
 const PORT = process.env.PORT || 3000;
+let server: any;
 
-console.log(`
-🤖 Stern Business Advisor Demo
-==============================
-1. Server running on http://localhost:${PORT}
-2. Send POST requests to /agent/stern/input
-3. Example curl command:
+async function start() {
+	server = app.listen(PORT, () => {
+		console.log(`Server running on http://localhost:${PORT}`);
+		startCLI();
+	});
+}
 
-curl -X POST http://localhost:${PORT}/agent/stern/input \\
--H "Content-Type: application/json" \\
--d '{
-    "userId": "user123",
-    "text": "How can I improve my business efficiency?"
-}'
-`);
+process.on("SIGINT", () => {
+	console.log("\nShutting down...");
+	server?.close();
+	process.exit(0);
+});
 
-app.listen(PORT);
+if (require.main === module) {
+	start().catch(console.error);
+}

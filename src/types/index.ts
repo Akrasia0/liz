@@ -87,6 +87,7 @@ export interface Memory {
 	roomId: string;
 	content: any;
 	type: string;
+	generator: string; // "external" or "llm"
 	createdAt: Date;
 }
 

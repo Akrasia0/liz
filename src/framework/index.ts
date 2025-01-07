@@ -35,11 +35,9 @@ export class AgentFramework {
 	): AgentResponse {
 		const res: AgentResponse = {
 			send: async (content: any) => {
-				console.log("Sending response:", content);
-				expressRes.send(content);
+				expressRes.json(content);
 			},
 			json: async (content: any) => {
-				console.log("Sending response:", content);
 				expressRes.json(content);
 			},
 			error: async (error: any) => {

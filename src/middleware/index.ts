@@ -11,8 +11,8 @@ export { validateInput, loadMemories, wrapContext, router, createMemory };
 // Export standard middleware stack
 export const standardMiddleware: AgentMiddleware[] = [
 	validateInput,
-	createMemory, // Store the input first // TODO: might need to change
-	loadMemories, // Then load previous memories
+	loadMemories, // Load previous memories
 	wrapContext, // Wrap everything in context
-	router, // Finally, route to appropriate handler
+	createMemory,
+	router,
 ];
