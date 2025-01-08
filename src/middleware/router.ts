@@ -1,4 +1,4 @@
-import { AgentMiddleware } from "../types";
+import { AgentMiddleware, Route } from "../types";
 import { LLMUtils } from "../utils/llm";
 import { z } from "zod";
 import { LLMSize } from "../types";
@@ -15,11 +15,16 @@ export const router: AgentMiddleware = async (req, res, next) => {
 		const routes = req.agent.getRoutes();
 
 		// Create route descriptions for LLM
-		const routeDescriptions = Array.from(routes.entries())
-			.map(([name, route]) => `${name}: ${route.description}`)
+		const routeDescriptions = routes
+			.map((route: Route) => `"${route.name}": ${route.description}`)
 			.join("\n");
 
 		const prompt = `
+<CONTEXT>
+${req.context}
+</CONTEXT>
+
+<SYSTEM>
 You are functioning as a request router for an AI agent with the following system prompt:
 
 ${req.agent.getSystemPrompt()}
@@ -29,15 +34,13 @@ Your task is to analyze incoming messages and route them to the most appropriate
 Available Routes:
 ${routeDescriptions}
 
-Recent Context and Current Request:
-${req.context}
-
 Based on the agent's system description and the available routes, select the most appropriate route to handle this interaction.
 
 Respond with a JSON object containing:
 - selectedRoute: The name of the selected route
 - confidence: A number between 0 and 1 indicating confidence in the selection
 - reasoning: A brief explanation of why this route was selected
+</SYSTEM>
 `.trim();
 
 		const routeDecision = await llmUtils.getObjectFromLLM(
@@ -46,7 +49,7 @@ Respond with a JSON object containing:
 			LLMSize.LARGE
 		);
 
-		const handler = routes.get(routeDecision.selectedRoute);
+		const handler = routes.find((r) => r.name === routeDecision.selectedRoute);
 		if (!handler) {
 			return res.error(
 				new Error(`No handler for route: ${routeDecision.selectedRoute}`)

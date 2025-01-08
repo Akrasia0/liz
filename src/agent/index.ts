@@ -2,11 +2,11 @@ import { Agent, Character, Route } from "../types";
 
 export class BaseAgent implements Agent {
 	private character: Character;
-	private routes: Map<string, Route>;
+	private routes: Route[];
 
 	constructor(character: Character) {
 		this.character = character;
-		this.routes = new Map(character.routes.map((route) => [route.name, route]));
+		this.routes = character.routes;
 	}
 
 	private getRandomElements<T>(arr: T[], count: number): T[] {
@@ -33,10 +33,10 @@ export class BaseAgent implements Agent {
 	}
 
 	public addRoute(route: Route): void {
-		if (this.routes.has(route.name)) {
+		if (this.routes.some((r) => r.name === route.name)) {
 			throw new Error(`Route with name '${route.name}' already exists`);
 		}
-		this.routes.set(route.name, route);
+		this.routes.push(route);
 	}
 
 	public getAgentContext(): string {
@@ -72,32 +72,47 @@ export class BaseAgent implements Agent {
 		).join(", ");
 
 		return `
-Bio Context:
+<SYSTEM_PROMPT>
+${this.getSystemPrompt()}
+</SYSTEM_PROMPT>
+
+<BIO_CONTEXT>
 ${bioContext}
+</BIO_CONTEXT>
 
-Lore Context:
+<LORE_CONTEXT>
 ${loreContext}
+</LORE_CONTEXT>
 
-Example Interactions:
+<MESSAGE_EXAMPLES>
 ${messageContext}
+</MESSAGE_EXAMPLES>
 
-Example Posts:
+<POST_EXAMPLES>
 ${postContext}
+</POST_EXAMPLES>
 
-Areas of Expertise:
+<INTERESTS>
 ${topicContext}
+</INTERESTS>
 
-Style Guidelines:
-General: ${styleAllContext}
-Chat: ${styleChatContext}
-Post: ${stylePostContext}
+<STYLE_GUIDELINES>
+<ALL_STYLE>
+${styleAllContext}
+</ALL_STYLE>
 
-Character Traits:
+<CHAT_STYLE>
+${styleChatContext}
+</CHAT_STYLE>
+</STYLE_GUIDELINES>
+
+<ADJECTIVES>
 ${adjectiveContext}
+</ADJECTIVES>
 `.trim();
 	}
 
-	public getRoutes(): Map<string, Route> {
+	public getRoutes(): Route[] {
 		return this.routes;
 	}
 }

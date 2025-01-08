@@ -27,19 +27,25 @@ export function createLoadMemoriesMiddleware(
 				take: limit,
 			});
 
-			req.memories = memories.map(
-				(memory: NonNullable<DbMemory>) =>
-					({
-						id: memory.id,
-						userId: memory.userId,
-						agentId: memory.agentId,
-						roomId: memory.roomId,
-						type: memory.type,
-						createdAt: memory.createdAt,
-						generator: memory.generator,
-						content: memory.content,
-					} as Memory)
-			);
+			req.memories = memories
+				.map((memory: NonNullable<DbMemory>) => {
+					try {
+						return {
+							id: memory.id,
+							userId: memory.userId,
+							agentId: memory.agentId,
+							roomId: memory.roomId,
+							type: memory.type,
+							createdAt: memory.createdAt,
+							generator: memory.generator,
+							content: JSON.parse(memory.content),
+						} as Memory;
+					} catch (e) {
+						console.log("Failed to load a memory");
+						return undefined;
+					}
+				})
+				.filter((memory): memory is Memory => memory !== undefined);
 
 			await next();
 		} catch (error) {
@@ -50,5 +56,4 @@ export function createLoadMemoriesMiddleware(
 	};
 }
 
-// Export the default instance with standard options
 export const loadMemories = createLoadMemoriesMiddleware();

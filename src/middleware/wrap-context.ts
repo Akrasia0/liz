@@ -8,23 +8,17 @@ function formatMemories(memories: Memory[] | undefined): string {
 	return memories
 		.reverse()
 		.map((memory) => {
-			try {
-				const content = JSON.parse(memory.content);
-				if (memory.generator === "external") {
-					return `[${memory.createdAt.toISOString()}] User ${memory.userId}: ${
-						content.text
-					}`;
-				} else if (memory.generator === "llm") {
-					return `[${memory.createdAt.toISOString()}] You: ${content.text}`;
-				}
-			} catch (e) {
-				console.log(e);
-				return `[${memory.createdAt.toISOString()}] Error parsing memory: ${
-					memory.content
+			const content = memory.content;
+			if (memory.generator === "external") {
+				return `[${memory.createdAt.toISOString()}]User ${memory.userId}: ${
+					content.text
 				}`;
+			} else if (memory.generator === "llm") {
+				return `[${memory.createdAt.toISOString()}] You: ${content.text}`;
 			}
 		})
-		.join("\n\n"); // Add extra line between messages for better readability
+		.filter(Boolean)
+		.join("\n\n");
 }
 
 function formatInput(input: any): string {
@@ -41,16 +35,23 @@ function formatInput(input: any): string {
 
 export const wrapContext: AgentMiddleware = async (req, res, next) => {
 	try {
+		const memories = formatMemories(req.memories);
+		const agentContext = req.agent.getAgentContext();
+		const currentInput = formatInput(req.input);
+
 		req.context = `
-Previous Conversation:
-${formatMemories(req.memories)}
+<PREVIOUS_CONVERSATION>
+${memories}
+</PREVIOUS_CONVERSATION>
 
-Agent Context:
-${req.agent.getAgentContext()}
+<AGENT_CONTEXT>
+${agentContext}
+</AGENT_CONTEXT>
 
-${formatInput(req.input)}
+<CURRENT_USER_INPUT>
+${currentInput}
+<CURRENT_USER_INPUT>
 `.trim();
-		console.log(req.context);
 
 		await next();
 	} catch (error) {

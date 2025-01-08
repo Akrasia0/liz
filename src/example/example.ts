@@ -161,12 +161,6 @@ async function start() {
 	});
 }
 
-process.on("SIGINT", () => {
-	console.log("\nShutting down...");
-	server?.close();
-	process.exit(0);
-});
-
 if (require.main === module) {
 	start().catch(console.error);
 }
