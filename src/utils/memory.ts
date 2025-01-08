@@ -14,7 +14,8 @@ export async function createTwitterMemory(
 	userId: string,
 	agentId: string,
 	roomId: string,
-	message: string
+	message: string,
+	generator: string = "llm"
 ) {
 	await prisma.memory.create({
 		data: {
@@ -22,7 +23,7 @@ export async function createTwitterMemory(
 			agentId,
 			roomId,
 			type: "tweet",
-			generator: "llm",
+			generator: generator,
 			content: JSON.stringify({ text: message }),
 		},
 	});
@@ -38,11 +39,9 @@ export async function doesTweetExist(tweetId: string): Promise<boolean> {
 export async function storeTweetIfNotExists(
 	tweet: TweetData
 ): Promise<boolean> {
-	// First check if tweet exists
 	const exists = await doesTweetExist(tweet.id);
 
 	if (!exists) {
-		// Only store if it doesn't exist
 		await prisma.tweet.create({
 			data: {
 				id: tweet.id,

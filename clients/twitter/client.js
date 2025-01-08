@@ -95,8 +95,6 @@ class TwitterClient extends TwitterBase {
 
 	async handleMention(tweet) {
 		try {
-			console.log("Handling mention:", `@${tweet.username} ${tweet.text}`);
-
 			const tweetStored = await storeTweetIfNotExists({
 				id: tweet.id,
 				text: tweet.text,
@@ -111,6 +109,7 @@ class TwitterClient extends TwitterBase {
 				console.log("Tweet already processed, skipping:", tweet.id);
 				return [];
 			}
+			console.log("Handling mention:", `@${tweet.username} ${tweet.text}`);
 
 			const roomId = tweet.conversationId || "twitter";
 			const promptText = `@${tweet.username}:\n${tweet.text}`;
