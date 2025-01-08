@@ -1,215 +1,201 @@
 const { TwitterBase } = require("./base");
 const { buildConversationThread, sendThreadedTweet } = require("./utils");
+const axios = require("axios");
+const { storeTweetIfNotExists } = require("../../dist/utils/memory");
 
 class TwitterClient extends TwitterBase {
-    /**
-     * @param {Object} agent - Agent instance
-     * @param {Object} config - Twitter configuration
-     */
-    constructor(agent, config) {
-        super(agent, config);
-        this.postInterval = null;
-        this.checkInterval = null;
-    }
+	constructor(agent, config) {
+		super(agent, config);
+		this.postInterval = null;
+		this.checkInterval = null;
+	}
 
-    /**
-     * Start the Twitter client, including posting and monitoring loops
-     * @returns {Promise<void>}
-     */
-    async start() {
-        await this.init();
+	async start() {
+		await this.init();
 
-        // Start the posting loop if enabled
-        if (this.config.postIntervalHours > 0) {
-            const intervalMs = this.config.postIntervalHours * 60 * 60 * 1000;
-            this.postInterval = setInterval(() => this.generateAndPost(), intervalMs);
-            console.log(
-                `Posting loop started. Will post every ${this.config.postIntervalHours} hours`
-            );
-        }
+		if (this.config.postIntervalHours > 0) {
+			const intervalMs = this.config.postIntervalHours * 60 * 60 * 1000;
+			this.postInterval = setInterval(() => this.generateAndPost(), intervalMs);
+			console.log(
+				`Posting loop started. Will post every ${this.config.postIntervalHours} hours`
+			);
+		}
 
-        // Check for mentions every 5 minutes
-        this.checkInterval = setInterval(
-            () => this.checkInteractions(),
-            5 * 60 * 1000
-        );
-        console.log("Twitter client started. Monitoring for interactions.");
-    }
+		this.checkInterval = setInterval(
+			() => this.checkInteractions(),
+			60 * 1000 * this.config.pollingInterval
+		);
+		console.log("Twitter client started. Monitoring for interactions.");
+	}
 
-    /**
-     * Stop the Twitter client and clear all intervals
-     * @returns {Promise<void>}
-     */
-    async stop() {
-        if (this.postInterval) {
-            clearInterval(this.postInterval);
-            this.postInterval = null;
-        }
-        if (this.checkInterval) {
-            clearInterval(this.checkInterval);
-            this.checkInterval = null;
-        }
-        console.log("Twitter client stopped");
-    }
+	async stop() {
+		if (this.postInterval) {
+			clearInterval(this.postInterval);
+			this.postInterval = null;
+		}
+		if (this.checkInterval) {
+			clearInterval(this.checkInterval);
+			this.checkInterval = null;
+		}
+		console.log("Twitter client stopped");
+	}
 
-    /**
-     * Generate and post a new tweet using the agent
-     * @returns {Promise<Array<{
-     *   id: string,
-     *   text: string,
-     *   timestamp: number,
-     *   userId: string,
-     *   conversationId: string,
-     *   permanentUrl: string
-     * }>>} Array of posted tweets if successful
-     */
-    async generateAndPost() {
-        try {
-            console.log("Generating new tweet...");
-            const prompt = `As ${this.agent.getId()}, compose a tweet about a topic in your expertise.
-                        Keep it under 280 characters. Write only the tweet text.`;
+	async generateAndPost() {
+		try {
+			console.log("Requesting new tweet content from the server...");
 
-            const response = await this.agent.generateResponse(prompt);
-            const tweets = await sendThreadedTweet(this, response);
+			const responseText = await this.fetchTweetContent({
+				agentId: this.agent.getAgentId(),
+				userId: "twitter_client",
+				roomId: "twitter",
+				text: "<SYSTEM> Generate a new tweet to post on your timeline </SYSTEM>",
+			});
 
-            if (tweets.length > 0) {
-                console.log("Posted tweet:", tweets.map((t) => t.text).join("\n"));
-            }
-            
-            return tweets;
-        } catch (error) {
-            console.error("Error generating/posting tweet:", error);
-            return [];
-        }
-    }
+			console.log("Server responded with tweet text:", responseText);
 
-    /**
-     * Check for and handle new mentions
-     * @returns {Promise<void>}
-     */
-    async checkInteractions() {
-        try {
-            const mentions = await this.getMentions();
+			const tweets = await sendThreadedTweet(this, responseText);
 
-            for (const mention of mentions) {
-                if (this.lastCheckedTweetId && mention.id <= this.lastCheckedTweetId) {
-                    continue;
-                }
+			if (tweets.length > 0) {
+				console.log("Posted tweet:", tweets.map((t) => t.text).join("\n"));
 
-                await this.handleMention(mention);
-                this.lastCheckedTweetId = mention.id;
-            }
-        } catch (error) {
-            console.error("Error checking interactions:", error);
-        }
-    }
+				// Store each tweet in the thread
+				for (const tweet of tweets) {
+					await storeTweetIfNotExists({
+						id: tweet.id,
+						text: tweet.text,
+						userId: this.config.username,
+						username: this.config.username,
+						conversationId: tweet.conversationId,
+						permanentUrl: tweet.permanentUrl,
+					});
+				}
+			}
 
-    /**
-     * Handle a single mention by generating and posting a reply
-     * @param {Object} tweet - Tweet object representing the mention
-     * @param {string} tweet.id - Tweet ID
-     * @param {string} tweet.username - Author's username
-     * @param {string} tweet.text - Tweet content
-     * @returns {Promise<Array<{
-     *   id: string,
-     *   text: string,
-     *   timestamp: number,
-     *   userId: string,
-     *   conversationId: string,
-     *   permanentUrl: string
-     * }>>} Array of reply tweets if successful
-     */
-    async handleMention(tweet) {
-        try {
-            const thread = await buildConversationThread(tweet, this);
-            const conversation = thread
-                .map((t) => `@${t.username}: ${t.text}`)
-                .join("\n");
+			return tweets;
+		} catch (error) {
+			console.error("Error generating/posting tweet:", error);
+			return [];
+		}
+	}
 
-            const prompt = `You are ${this.agent.getId()}. Generate a reply to this conversation:
+	async checkInteractions() {
+		try {
+			const mentions = await this.getMentions();
+			for (const mention of mentions) {
+				if (this.lastCheckedTweetId && mention.id <= this.lastCheckedTweetId) {
+					continue;
+				}
+				await this.handleMention(mention);
+				this.lastCheckedTweetId = mention.id;
+			}
+		} catch (error) {
+			console.error("Error checking interactions:", error);
+		}
+	}
 
-Conversation thread:
-${conversation}
+	async handleMention(tweet) {
+		try {
+			console.log("Handling mention:", `@${tweet.username} ${tweet.text}`);
 
-Latest tweet from @${tweet.username}:
-${tweet.text}
+			const tweetStored = await storeTweetIfNotExists({
+				id: tweet.id,
+				text: tweet.text,
+				userId: tweet.userId,
+				username: tweet.username,
+				conversationId: tweet.conversationId,
+				inReplyToId: tweet.inReplyToStatusId,
+				permanentUrl: tweet.permanentUrl,
+			});
 
-Write only your reply (max 280 characters):`;
+			if (!tweetStored) {
+				console.log("Tweet already processed, skipping:", tweet.id);
+				return [];
+			}
 
-            const response = await this.agent.generateResponse(prompt);
-            const tweets = await sendThreadedTweet(this, response, tweet.id);
+			const roomId = tweet.conversationId || "twitter";
+			const promptText = `@${tweet.username}:\n${tweet.text}`;
 
-            if (tweets.length > 0) {
-                console.log(
-                    "Replied to mention:",
-                    tweets.map((t) => t.text).join("\n")
-                );
-            }
-            
-            return tweets;
-        } catch (error) {
-            console.error("Error handling mention:", error);
-            return [];
-        }
-    }
+			const responseText = await this.fetchTweetContent({
+				agentId: this.agent.getAgentId(),
+				userId: `tw_user_${tweet.userId}`,
+				roomId,
+				text: promptText,
+			});
 
-    /**
-     * Get recent tweets from the home timeline
-     * @param {number} [count=20] - Number of tweets to fetch
-     * @returns {Promise<Array<{
-     *   id: string,
-     *   name: string,
-     *   username: string,
-     *   text: string,
-     *   timestamp: number,
-     *   userId: string,
-     *   conversationId: string,
-     *   inReplyToStatusId: string,
-     *   permanentUrl: string
-     * }>>} Array of timeline tweets
-     */
-    async getTimeline(count = 20) {
-        return this.fetchHomeTimeline(count);
-    }
+			const tweets = await sendThreadedTweet(this, responseText, tweet.id);
 
-    /**
-     * Reply to a specific tweet
-     * @param {string} tweetId - ID of tweet to reply to
-     * @param {string} [content] - Optional reply content. If not provided, will be generated
-     * @returns {Promise<Array<{
-     *   id: string,
-     *   text: string,
-     *   timestamp: number,
-     *   userId: string,
-     *   conversationId: string,
-     *   permanentUrl: string
-     * }>>} Array of reply tweets if successful
-     */
-    async replyToTweet(tweetId, content) {
-        try {
-            const tweet = await this.getTweet(tweetId);
-            if (!tweet) {
-                throw new Error("Tweet not found");
-            }
+			if (tweets.length > 0) {
+				console.log(
+					"Replied to mention:",
+					tweets.map((t) => t.text).join("\n")
+				);
+				for (const replyTweet of tweets) {
+					await storeTweetIfNotExists({
+						id: replyTweet.id,
+						text: replyTweet.text,
+						userId: this.config.username,
+						username: this.config.username,
+						conversationId: tweet.conversationId,
+						inReplyToId: tweet.id,
+						permanentUrl: replyTweet.permanentUrl,
+					});
+				}
+			}
 
-            const replyContent = content || (await this.generateReplyToTweet(tweet));
-            return await sendThreadedTweet(this, replyContent, tweetId);
-        } catch (error) {
-            console.error("Error replying to tweet:", error);
-            return [];
-        }
-    }
+			return tweets;
+		} catch (error) {
+			console.error("Error handling mention:", error);
+			return [];
+		}
+	}
 
-    /**
-     * Generate a reply to a specific tweet using the agent
-     * @param {Object} tweet - Tweet to reply to
-     * @param {string} tweet.username - Author's username
-     * @param {string} tweet.text - Tweet content
-     * @returns {Promise<string>} Generated reply content
-     */
-    async generateReplyToTweet(tweet) {
-        const thread = await buildConversationThread(tweet, this);
-        const prompt = `You are ${this.agent.getId()}. Generate a reply to this tweet:
+	async fetchTweetContent(payload) {
+		const url = "http://localhost:3000/agent/input";
+		const body = {
+			input: {
+				agentId: payload.agentId,
+				userId: payload.userId,
+				roomId: payload.roomId,
+				text: payload.text,
+			},
+		};
+
+		try {
+			const response = await axios.post(url, body, {
+				headers: { "Content-Type": "application/json" },
+			});
+
+			const data = response.data;
+
+			if (typeof data === "string") {
+				return data;
+			} else if (data.error) {
+				throw new Error(`Server error: ${data.error}`);
+			} else {
+				return JSON.stringify(data);
+			}
+		} catch (error) {
+			throw new Error(`Failed to fetch tweet content: ${error.message}`);
+		}
+	}
+
+	async replyToTweet(tweetId, content) {
+		try {
+			const tweet = await this.getTweet(tweetId);
+			if (!tweet) {
+				throw new Error("Tweet not found");
+			}
+			const replyContent = content || (await this.generateReplyToTweet(tweet));
+			return await sendThreadedTweet(this, replyContent, tweetId);
+		} catch (error) {
+			console.error("Error replying to tweet:", error);
+			return [];
+		}
+	}
+
+	async generateReplyToTweet(tweet) {
+		const thread = await buildConversationThread(tweet, this);
+		const prompt = `Generate a reply to this tweet:
         
 Tweet from @${tweet.username}: ${tweet.text}
 
@@ -218,17 +204,12 @@ ${thread.map((t) => `@${t.username}: ${t.text}`).join("\n")}
 
 Write only your reply (max 280 characters):`;
 
-        return this.agent.generateResponse(prompt);
-    }
+		return this.agent.generateResponse(prompt);
+	}
 
-    /**
-     * Like a tweet
-     * @param {string} tweetId - ID of tweet to like
-     * @returns {Promise<boolean>} Success status
-     */
-    async like(tweetId) {
-        return this.likeTweet(tweetId);
-    }
+	async like(tweetId) {
+		return this.likeTweet(tweetId);
+	}
 }
 
 module.exports = { TwitterClient };

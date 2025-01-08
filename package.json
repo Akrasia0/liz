@@ -19,9 +19,6 @@
 		"prisma:migrate": "prisma migrate dev",
 		"prisma:studio": "prisma studio"
 	},
-	"workspaces": [
-		"clients/*"
-	],
 	"keywords": [
 		"agent",
 		"framework",
@@ -33,6 +30,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"@prisma/client": "^5.7.0",
+		"dotenv": "^16.4.7",
 		"express": "^4.21.2",
 		"node-fetch": "^3.3.2",
 		"openai": "^4.0.0",

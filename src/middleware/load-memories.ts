@@ -19,7 +19,8 @@ export function createLoadMemoriesMiddleware(
 		try {
 			const memories = await prisma.memory.findMany({
 				where: {
-					roomId: req.input.roomId,
+					// roomId: req.input.roomId,
+					userId: req.input.userId,
 				},
 				orderBy: {
 					createdAt: "desc",

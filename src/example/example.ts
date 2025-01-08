@@ -1,30 +1,25 @@
 import express, { Express, Request, Response } from "express";
 import { AgentFramework } from "../framework";
 import { standardMiddleware } from "../middleware";
-import {
-	Character,
-	InputObject,
-	InputSource,
-	InputType,
-	LLMSize,
-} from "../types";
+import { Character, InputObject, InputSource, InputType } from "../types";
 import { BaseAgent } from "../agent";
-import { LLMUtils } from "../utils/llm";
-import { z } from "zod";
 import { prisma } from "../utils/db";
 import readline from "readline";
 import fetch from "node-fetch";
+import { routes } from "../routes";
+// @ts-ignore
+import { TwitterClient } from "../../clients/twitter";
+import dotenv from "dotenv";
 
-// Initialize Express and LLM utils
+dotenv.config(); // Load environment variables
+
+// Initialize Express and framework
 const app: Express = express();
 app.use(express.json());
-const llmUtils = new LLMUtils();
-
-// Initialize framework with middleware
 const framework = new AgentFramework();
 standardMiddleware.forEach((middleware) => framework.use(middleware));
 
-// Define Stern character (import from another file for real usecases)
+// Define Stern character
 const sternCharacter: Character = {
 	name: "Stern",
 	agentId: "stern",
@@ -55,63 +50,42 @@ const sternCharacter: Character = {
 	routes: [],
 };
 
-// Initialize agent(s)
+// Initialize agent
 const stern = new BaseAgent(sternCharacter);
 const agents = [stern];
 
-// Add routes. In real usecases, this would be a imported route from a different file
-stern.addRoute({
-	name: "conversation",
-	description: "Handle conversation",
-	handler: async (context: string, req, res) => {
-		const response = await llmUtils.getTextFromLLM(
-			context,
-			"anthropic/claude-3.5-sonnet"
-		);
+// Add the default routes
+routes.forEach((r) => stern.addRoute(r));
 
-		await prisma.memory.create({
-			data: {
-				userId: req.input.userId,
-				agentId: stern.getAgentId(),
-				roomId: req.input.roomId,
-				type: "text",
-				generator: "llm",
-				content: JSON.stringify({ text: response }),
-			},
-		});
-
-		await res.send(response);
-	},
-});
-
-// Add API endpoint
+// Express endpoint for agent input
 app.post("/agent/input", (req: Request, res: Response) => {
 	try {
-		const agentId = req.body.input.agentId;
+		const bodyInput = req.body.input;
+		const agentId = bodyInput.agentId;
 		const agent = agents.find((agent) => agent.getAgentId() === agentId);
 
 		if (!agent) {
 			return res.status(404).json({ error: "Agent not found" });
 		}
 
-		const bodyInput = req.body.input;
+		// Construct an InputObject for the framework
 		const input: InputObject = {
 			source: InputSource.NETWORK,
 			userId: bodyInput.userId,
-			agentId: stern.getAgentId(),
-			roomId: `${agentId}_${bodyInput.userId}`,
-			type: InputType.TEXT,
+			agentId: agent.getAgentId(),
+			roomId: bodyInput.roomId || `${agentId}_${bodyInput.userId}`,
+			type: bodyInput.type || InputType.TEXT,
 			text: bodyInput.text,
 		};
 
-		framework.process(input, stern, res);
+		framework.process(input, agent, res);
 	} catch (error) {
 		console.error("Server error:", error);
 		return res.status(500).json({ error: "Internal server error" });
 	}
 });
 
-// CLI Interface
+// CLI for local testing
 async function startCLI() {
 	const rl = readline.createInterface({
 		input: process.stdin,
@@ -154,10 +128,44 @@ async function startCLI() {
 const PORT = process.env.PORT || 3000;
 let server: any;
 
+// Initialize and start Twitter client
+async function startTwitterClient() {
+	// Gather config from .env or fallback
+	const username = process.env.TWITTER_USERNAME || "";
+	const password = process.env.TWITTER_PASSWORD || "";
+	const email = process.env.TWITTER_EMAIL || "";
+	const twoFactorSecret = process.env.TWITTER_2FA_SECRET || "";
+	const postIntervalHours = process.env.TWITTER_POST_INTERVAL_HOURS
+		? parseInt(process.env.TWITTER_POST_INTERVAL_HOURS, 10)
+		: 4;
+	const pollingInterval = process.env.TWITTER_POLLING_INTERVAL
+		? parseInt(process.env.TWITTER_POLLING_INTERVAL, 10)
+		: 5;
+
+	const config = {
+		username,
+		password,
+		email,
+		twoFactorSecret: twoFactorSecret || undefined,
+		retryLimit: 3,
+		postIntervalHours,
+		enableActions: false,
+		pollingInterval,
+	};
+
+	const twitterClient = new TwitterClient(stern, config);
+	await twitterClient.start(); // Start intervals for checking mentions & posting
+}
+
 async function start() {
 	server = app.listen(PORT, () => {
 		console.log(`Server running on http://localhost:${PORT}`);
 		startCLI();
+
+		// Start Twitter client after server is up
+		startTwitterClient().catch((err) => {
+			console.error("Error starting Twitter client:", err);
+		});
 	});
 }
 

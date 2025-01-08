@@ -5,6 +5,7 @@
     "main": "index.js",
     "dependencies": {
         "agent-twitter-client": "0.0.18",
+        "axios": "^1.7.9",
         "zod": "^3.22.4"
     },
     "devDependencies": {

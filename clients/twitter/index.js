@@ -1,7 +1,7 @@
-const { TwitterClient } = require('./client');
-const { twitterConfigSchema } = require('./config');
+const { TwitterClient } = require("./client");
+const { twitterConfigSchema } = require("./config");
 
 module.exports = {
-    TwitterClient,
-    twitterConfigSchema
+	TwitterClient,
+	twitterConfigSchema,
 };
