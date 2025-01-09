@@ -74,7 +74,8 @@ app.post("/agent/input", (req: Request, res: Response) => {
 			userId: bodyInput.userId,
 			agentId: agent.getAgentId(),
 			roomId: bodyInput.roomId || `${agentId}_${bodyInput.userId}`,
-			type: bodyInput.type || InputType.TEXT,
+			type:
+				bodyInput.type === "text" ? InputType.TEXT : InputType.TEXT_AND_IMAGE,
 			text: bodyInput.text,
 			imageUrls: bodyInput.imageUrls,
 		};
