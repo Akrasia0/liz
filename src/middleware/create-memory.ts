@@ -7,15 +7,17 @@ export const createMemoryFromInput: AgentMiddleware = async (
 	next
 ) => {
 	try {
-		// Store the input as a memory
+		// Store the input as a memory, including image descriptions in content
 		await prisma.memory.create({
 			data: {
 				userId: req.input.userId,
 				agentId: req.input.agentId,
 				roomId: req.input.roomId,
-				type: "text",
+				type: req.input.type,
 				generator: "external",
-				content: JSON.stringify(req.input), // Store the entire input object
+				content: JSON.stringify({
+					...req.input,
+				}),
 			},
 		});
 

@@ -76,6 +76,7 @@ app.post("/agent/input", (req: Request, res: Response) => {
 			roomId: bodyInput.roomId || `${agentId}_${bodyInput.userId}`,
 			type: bodyInput.type || InputType.TEXT,
 			text: bodyInput.text,
+			imageUrls: bodyInput.imageUrls,
 		};
 
 		framework.process(input, agent, res);

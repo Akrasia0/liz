@@ -20,15 +20,15 @@ export const validateInput: AgentMiddleware = async (req, res, next) => {
 		// 		return res.error(new Error("Image input requires imageUrl field"));
 		// 	}
 		// 	break;
-		// case "text_and_image":
-		// 	if (!input.text || !input.imageUrl) {
-		// 		return res.error(
-		// 			new Error(
-		// 				"Text and image input requires both text and imageUrl fields"
-		// 			)
-		// 		);
-		// 	}
-		// 	break;
+		case "text_and_image":
+			if (!input.text || !input.imageUrls || input.imageUrls.length === 0) {
+				return res.error(
+					new Error(
+						"Text and image input requires both text and imageUrls fields"
+					)
+				);
+			}
+			break;
 		// case "audio":
 		// 	if (!input.audioUrl) {
 		// 		return res.error(new Error("Audio input requires audioUrl field"));

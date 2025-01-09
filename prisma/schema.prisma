@@ -8,14 +8,14 @@ generator client {
 }
 
 model Memory {
-  id        String   @id @default(uuid())
-  userId    String
-  agentId   String
-  roomId    String
-  content   String   // Keep as String for SQLite
-  type      String
-  generator String   // "llm" or "external"
-  createdAt DateTime @default(now())
+  id              String   @id @default(uuid())
+  userId          String
+  agentId         String
+  roomId          String
+  content         String   // Keep as String for SQLite
+  type            String
+  generator       String   // "llm" or "external"
+  createdAt       DateTime @default(now())
 
   @@index([roomId])
   @@index([userId, agentId])

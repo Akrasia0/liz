@@ -26,7 +26,7 @@ export interface InputObject {
 	roomId: string;
 	type: InputType;
 	text?: string;
-	imageUrl?: string;
+	imageUrls?: string[];
 	audioUrl?: string;
 	videoUrl?: string;
 	[key: string]: any;
@@ -66,6 +66,7 @@ export interface Route {
 		res: AgentResponse
 	) => Promise<void>;
 }
+
 export interface AgentRequest {
 	input: InputObject;
 	agent: Agent;

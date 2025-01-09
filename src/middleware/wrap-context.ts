@@ -1,4 +1,6 @@
 import { AgentMiddleware, Memory } from "../types";
+import { LLMUtils } from "../utils/llm";
+const llmUtils = new LLMUtils();
 
 function formatMemories(memories: Memory[] | undefined): string {
 	if (!memories || memories.length === 0) {
@@ -12,33 +14,42 @@ function formatMemories(memories: Memory[] | undefined): string {
 			if (memory.generator === "external") {
 				return `[${memory.createdAt.toISOString()}]User ${memory.userId}: ${
 					content.text
+				} ${
+					content.imageDescriptions
+						? `Description of attached images:\n${content.imageDescriptions}`
+						: ""
 				}`;
 			} else if (memory.generator === "llm") {
-				return `[${memory.createdAt.toISOString()}] You: ${content.text}`;
+				return `[${memory.createdAt.toISOString()}] You: ${content.text}
+				${
+					content.imageDescriptions
+						? `Description of attached images:\n${content.imageDescriptions}`
+						: ""
+				}`;
 			}
 		})
 		.filter(Boolean)
 		.join("\n\n");
 }
 
-function formatInput(input: any): string {
-	const { type, text, imageUrl, audioUrl, videoUrl } = input;
-	const parts = [];
-
-	if (text) parts.push(`Text: ${text}`);
-	if (imageUrl) parts.push(`Image: ${imageUrl}`);
-	if (audioUrl) parts.push(`Audio: ${audioUrl}`);
-	if (videoUrl) parts.push(`Video: ${videoUrl}`);
-
-	return `Current Input (${type}):\n${parts.join("\n")}`;
-}
-
 export const wrapContext: AgentMiddleware = async (req, res, next) => {
 	try {
 		const memories = formatMemories(req.memories);
 		const agentContext = req.agent.getAgentContext();
-		const currentInput = formatInput(req.input);
-
+		const currentInput = req.input.text;
+		let imageDescriptions: string | undefined;
+		if (req.input.imageUrls && req.input.imageUrls.length > 0) {
+			try {
+				imageDescriptions = await llmUtils.getImageDescriptions(
+					req.input.imageUrls
+				);
+			} catch (error) {
+				console.warn("Failed to get image descriptions:", error);
+			}
+		}
+		req.input.imageDescriptions = imageDescriptions
+			? `Description of attached images:\n${imageDescriptions}`
+			: undefined;
 		req.context = `
 <PREVIOUS_CONVERSATION>
 ${memories}
@@ -49,8 +60,9 @@ ${agentContext}
 </AGENT_CONTEXT>
 
 <CURRENT_USER_INPUT>
-${currentInput}
-<CURRENT_USER_INPUT>
+ TEXT: ${currentInput}
+${imageDescriptions ? `\nIMAGES:\n${imageDescriptions}` : ""}
+</CURRENT_USER_INPUT>
 `.trim();
 
 		await next();
