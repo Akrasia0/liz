@@ -268,7 +268,7 @@ export class LLMUtils {
 
 	async getImageDescriptions(
 		imageUrls: string[],
-		model: string = "openai/gpt-4o-mini"
+		model: string = "openai/gpt-4o"
 	): Promise<string> {
 		if (!imageUrls || imageUrls.length === 0)
 			throw new Error("No images provided");
@@ -289,7 +289,7 @@ export class LLMUtils {
 							content: [
 								{
 									type: "text",
-									text: "Describe each image in a couple of concise sentences that captures its key elements:",
+									text: "Describe the image(s) in a couple of concise sentences that capture the most important elemetns of the image:",
 								},
 								...base64Images.map((image) => ({
 									type: "image_url",

@@ -111,7 +111,10 @@ class TwitterClient extends TwitterBase {
 				console.log("Tweet already processed, skipping:", tweet.id);
 				return [];
 			}
-			console.log("Handling mention:", `@${tweet.username} ${tweet.text}`);
+			console.log(
+				"Handling mention:",
+				`@${tweet.username} ${tweet.text} IMAGES: ${tweet.imageUrls?.join(" ")}`
+			);
 
 			const roomId = tweet.conversationId || "twitter";
 			const promptText = `@${tweet.username}:\n${tweet.text}`;

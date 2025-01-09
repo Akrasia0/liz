@@ -251,22 +251,23 @@ class TwitterBase extends EventEmitter {
 			const results = await this.requestQueue.add(() =>
 				this.twitterClient.fetchSearchTweets(query, count, "Latest")
 			);
-			console.log(results.tweets);
 			return results.tweets.map((tweet) => {
 				const imageUrls = [];
-				if (tweet.media) {
-					for (const mediaItem of tweet.media) {
-						if (mediaItem.type === "photo") {
-							imageUrls.push(mediaItem.url);
-						}
-					}
+				for (const photoItem of tweet.photos || []) {
+					imageUrls.push(photoItem.url);
+				}
+
+				let cleanedText = tweet.text;
+				if (imageUrls.length > 0) {
+					const urlPattern = /https:\/\/t\.co\/\w+/g;
+					cleanedText = cleanedText.replace(urlPattern, "<IMAGE>");
 				}
 
 				return {
 					id: tweet.id,
 					name: tweet.name,
 					username: tweet.username,
-					text: tweet.text,
+					text: cleanedText,
 					timestamp: tweet.timestamp,
 					userId: tweet.userId,
 					conversationId: tweet.conversationId,
@@ -286,7 +287,7 @@ class TwitterBase extends EventEmitter {
 	 * @param {number} [count=5] - Number of mentions to fetch
 	 * @returns {Promise<Tweet[]>} Array of mentions
 	 */
-	async getMentions(count = 5) {
+	async getMentions(count = 10) {
 		return this.searchTweets(`@${this.config.username}`, count);
 	}
 }

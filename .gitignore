@@ -49,3 +49,6 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+
+
+/src/test/*
