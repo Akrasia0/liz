@@ -5,7 +5,7 @@ import { Character, InputObject, InputSource, InputType } from "../types";
 import { BaseAgent } from "../agent";
 import { prisma } from "../utils/db";
 import readline from "readline";
-import fetch from "node-fetch";
+import axios from "axios";
 import { routes } from "../routes";
 // @ts-ignore
 import { TwitterClient } from "../../clients/twitter";
@@ -100,21 +100,15 @@ async function startCLI() {
 	async function prompt() {
 		rl.question("\nYou: ", async (text) => {
 			try {
-				const response = await fetch("http://localhost:3000/agent/input", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
+				const response = await axios.post("http://localhost:3000/agent/input", {
+					input: {
+						agentId: "stern",
+						userId: "cli_user",
+						text: text,
 					},
-					body: JSON.stringify({
-						input: {
-							agentId: "stern",
-							userId: "cli_user",
-							text: text,
-						},
-					}),
 				});
 
-				const data = await response.json();
+				const data = response.data;
 				console.log("\nStern:", data);
 				prompt();
 			} catch (error) {

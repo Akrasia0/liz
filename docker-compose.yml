@@ -1,0 +1,26 @@
+services:
+  tappd-simulator:
+    image: phalanetwork/tappd-simulator:latest
+    platform: linux/amd64 # Since you're on M1/M2 Mac
+    ports:
+      - "8090:8090"
+
+  app:
+    build: .
+    platform: linux/arm64 # For M1/M2 Mac
+    ports:
+      - "3000:3000"
+    environment:
+      - TEE_MODE=DOCKER
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - TWITTER_USERNAME=${TWITTER_USERNAME}
+      - TWITTER_PASSWORD=${TWITTER_PASSWORD}
+      - TWITTER_EMAIL=${TWITTER_EMAIL}
+      - TWITTER_2FA_SECRET=${TWITTER_2FA_SECRET:-}
+      - TWITTER_POST_INTERVAL_HOURS=${TWITTER_POST_INTERVAL_HOURS:-4}
+      - TWITTER_POLLING_INTERVAL=${TWITTER_POLLING_INTERVAL:-5}
+    volumes:
+      - ./prisma/dev.db:/app/prisma/dev.db
+    depends_on:
+      - tappd-simulator
