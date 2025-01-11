@@ -131,6 +131,7 @@ async function startTwitterClient() {
 	const password = process.env.TWITTER_PASSWORD || "";
 	const email = process.env.TWITTER_EMAIL || "";
 	const twoFactorSecret = process.env.TWITTER_2FA_SECRET || "";
+	const dryRun = true || process.env.TWITTER_DRY_RUN === "true";
 	const postIntervalHours = process.env.TWITTER_POST_INTERVAL_HOURS
 		? parseInt(process.env.TWITTER_POST_INTERVAL_HOURS, 10)
 		: 4;
@@ -147,6 +148,7 @@ async function startTwitterClient() {
 		postIntervalHours,
 		enableActions: false,
 		pollingInterval,
+		dryRun,
 	};
 
 	const twitterClient = new TwitterClient(stern, config);

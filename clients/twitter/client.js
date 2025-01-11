@@ -8,6 +8,7 @@ class TwitterClient extends TwitterBase {
 		super(agent, config);
 		this.postInterval = null;
 		this.checkInterval = null;
+		this.dryRun = config.dryRun;
 	}
 
 	async start() {
@@ -49,10 +50,11 @@ class TwitterClient extends TwitterBase {
 				userId: "twitter_client",
 				roomId: "twitter",
 				text: "<SYSTEM> Generate a new tweet to post on your timeline </SYSTEM>",
+				type: "text",
 			});
 
 			console.log("Server responded with tweet text:", responseText);
-
+			if (this.dryRun) return;
 			const tweets = await sendThreadedTweet(this, responseText);
 
 			if (tweets.length > 0) {
@@ -125,8 +127,10 @@ class TwitterClient extends TwitterBase {
 				roomId,
 				text: promptText,
 				imageUrls: tweet.imageUrls,
-				type: tweet.imageUrls ? "text_and_image" : "text",
+				type: tweet.imageUrls.length ? "text_and_image" : "text",
 			});
+			console.log(responseText);
+			if (this.dryRun) return;
 
 			const tweets = await sendThreadedTweet(this, responseText, tweet.id);
 
