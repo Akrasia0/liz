@@ -11,7 +11,7 @@ export const handleTweetGeneration = async (
 ) => {
 	const tweet = await llmUtils.getTextFromLLM(
 		`${context}\n\n
-        <SYSTEM> Look at the previous twitter context then generate a original and engaging tweet that fits in with your character and previous twitter history.</SYSTEM>`,
+       <SYSTEM> Look at the previous twitter context then generate a original and engaging tweet that fits in with your character and previous twitter history. ONLY output the tweet, no reflection on it. No "Tweet: ". Just the text of the tweet. The text you output will be posted directly to twitter.</SYSTEM>`,
 		"anthropic/claude-3.5-sonnet"
 	);
 
