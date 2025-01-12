@@ -1,81 +1,88 @@
 # Liz
 
-A lightweight, Express-style template for building AI agents with integrated social capabilities. Inspired by AI16Z's Eliza but focused on simplicity and developer control.
+<div align="center">
+  <img src="assets/liz.jpg" alt="Introducing: Liz" width="500" height="500" />
+  <p><em>A Framework for AI Agents by <a href="https://akrasia.ai/liz">Akrasia Labs</a></em></p>
+</div>
 
-## Philosophy
+<br/>
 
-Liz isn't a library - it's a starting point. Rather than creating abstractions and asking you to learn them, Liz provides a minimal, Express-style template that you can freely modify. Many modern agent frameworks add layers of abstraction between developers and LLMs, making it harder to understand and control what's happening. Liz takes the opposite approach:
+Liz is a lightweight framework for building AI agents, reimagined for developers who demand power and simplicity. Inspired by Eliza from AI16Z, but rebuilt from the ground up with a focus on developer experience and control.
 
-- **Fork & Hack**: Clone the repo and modify it to fit your needs
-- **Transparent**: Every part of the pipeline is visible, modifiable and linear
-- **Express-style**: Familiar middleware pattern that's easy to understand
-- **Developer-first**: Work directly with LLMs instead of hiding them behind abstractions
-- **Lightweight**: Small, focused codebase that you can build upon
+## Built for Developers Who Want
 
-## Architecture
+- **Direct LLM Control**: Full access to prompts and model interactions
+- **Zero Magic**: Minimal abstractions for maximum understanding
+- **Ultimate Flexibility**: Build exactly what you need, how you need it
 
-Liz uses Express-style middleware for a clear, linear processing flow:
+## Quick Start
 
-```
-Input → Middleware → Router → Handler
-```
+1. **Clone and Install**
 
-Each step is a middleware function that you can modify:
+   ```bash
+   git clone <your-repo>
+   cd liz
+   pnpm install
+   ```
 
-```typescript
-// Add your own middleware
-const customMiddleware: AgentMiddleware = async (req, res, next) => {
-	// Modify request
-	req.customData = await someProcess();
-	// Continue chain
-	await next();
-	// Post-process
-	console.log("Request handled");
-};
-app.use(customMiddleware);
-```
+2. **Configure Environment**
 
-## Built-in Features
+   ```bash
+   cp .env.example .env
+   ```
 
-### Memory System
+   Required environment variables:
 
-- SQLite-based persistent storage using Prisma
-- Automatic memory loading for context
-- Memory creation for both user inputs and agent responses
-- Indexed by room, user, and agent IDs
+   ```bash
+   # Database - Choose one:
+   DATABASE_URL="postgresql://user:password@localhost:5432/dbname"
+   # or for SQLite:
+   DATABASE_URL="file:./prisma/dev.db"
 
-### Twitter Integration
+   # LLM APIs
+   OPENAI_API_KEY="your-openai-key"
+   OPENROUTER_API_KEY="your-openrouter-key"
 
-- Automated posting with configurable intervals
-- Mention monitoring and response handling
-- Thread building and management
-- Rate limiting and retry mechanisms
-- Conversation context building
+   # Application
+   APP_URL="http://localhost:3000"
+   ```
 
-### LLM Integration
+3. **Initialize Database**
 
-- OpenAI integration with type-safe responses
-- OpenRouter API support for multiple models
-- Structured output parsing with Zod
-- Different model sizes for different tasks
-- Built-in prompt templates
+   ```bash
+   npm run init-db
+   ```
 
-## How to Use
+4. **Start Development**
+   ```bash
+   npm run dev
+   ```
 
-1. **Fork the Template**
+## Express-Style Architecture
 
-   - Start by forking this repository
-   - Modify the code directly to fit your needs
-
-2. **Define Your Agent**
+We use Express-style middleware for a clear, linear processing flow:
 
 ```typescript
-const myCharacter: Character = {
+// Example middleware setup
+const framework = new AgentFramework();
+
+// Add standard middleware
+framework.use(validateInput);
+framework.use(loadMemories);
+framework.use(wrapContext);
+framework.use(createMemoryFromInput);
+framework.use(router);
+```
+
+### Creating an Agent
+
+```typescript
+const myAgent: Character = {
 	name: "Assistant",
 	agentId: "unique_id",
 	system: "You are a helpful assistant.",
-	bio: ["Your agent's backstory..."],
-	lore: ["Additional background..."],
+	bio: ["Your agent's backstory"],
+	lore: ["Additional background"],
 	messageExamples: [], // Example conversations
 	postExamples: [], // Example social posts
 	topics: ["expertise1", "expertise2"],
@@ -86,10 +93,11 @@ const myCharacter: Character = {
 	},
 	adjectives: ["friendly", "knowledgeable"],
 };
-const agent = new BaseAgent(myCharacter);
+
+const agent = new BaseAgent(myAgent);
 ```
 
-3. **Add Route Handlers**
+### Adding Routes
 
 ```typescript
 agent.addRoute({
@@ -105,7 +113,7 @@ agent.addRoute({
 });
 ```
 
-4. **Set Up Twitter Bot (Optional)**
+### Twitter Integration
 
 ```typescript
 const twitter = new TwitterClient(agent, {
@@ -114,89 +122,144 @@ const twitter = new TwitterClient(agent, {
 	email: process.env.TWITTER_EMAIL,
 	retryLimit: 3,
 	postIntervalHours: 4,
+	pollingInterval: 5, // minutes
+	dryRun: false,
 });
 
 await twitter.start();
 ```
 
-## Folder Structure
+## Core Components
+
+### Memory System
+
+The memory system uses Prisma with SQLite (or PostgreSQL) to maintain conversation context:
+
+```typescript
+interface Memory {
+	id: string;
+	userId: string;
+	agentId: string;
+	roomId: string;
+	content: any;
+	type: string;
+	generator: string; // "external" or "llm"
+	createdAt: Date;
+}
+```
+
+Key features:
+
+- Automatic context loading for each request
+- Memory creation for both user inputs and agent responses
+- Indexed by room, user, and agent IDs
+- Configurable memory limits and types
+
+### LLM Integration
+
+Supports multiple LLM providers through a unified interface:
+
+```typescript
+const llmUtils = new LLMUtils();
+
+// Text generation
+const response = await llmUtils.getTextFromLLM(
+	prompt,
+	"anthropic/claude-3-sonnet"
+);
+
+// Structured output
+const result = await llmUtils.getObjectFromLLM(prompt, schema, LLMSize.LARGE);
+
+// Image analysis
+const description = await llmUtils.getImageDescriptions(imageUrls);
+```
+
+### Twitter Capabilities
+
+- **Automated Posting**: Configurable intervals for regular content
+- **Mention Monitoring**: Real-time interaction handling
+- **Thread Management**: Automatic thread building and response chaining
+- **Rate Limiting**: Built-in rate limiting and retry mechanisms
+- **Memory Integration**: Conversational context across interactions
+
+## Docker Support
+
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
+```
+
+Environment configuration in docker-compose.yml:
+
+```yaml
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - TEE_MODE=DOCKER
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - TWITTER_USERNAME=${TWITTER_USERNAME}
+      - TWITTER_PASSWORD=${TWITTER_PASSWORD}
+      - TWITTER_EMAIL=${TWITTER_EMAIL}
+    volumes:
+      - ./prisma/dev.db:/app/prisma/dev.db
+```
+
+## Project Structure
 
 ```
 src/
 ├── middleware/       # Pipeline steps
-│   ├── validate-input.ts
-│   ├── load-memories.ts
-│   ├── wrap-context.ts
-│   ├── create-memory.ts
-│   └── router.ts
-├── agent/           # Agent implementation
-├── framework/       # Core Express-like system
+│   ├── validate-input.ts   # Input validation
+│   ├── load-memories.ts    # Context loading
+│   ├── wrap-context.ts     # Request wrapping
+│   ├── create-memory.ts    # Memory creation
+│   └── router.ts          # Route handling
+├── agent/           # Core agent logic
+├── framework/       # Express-style system
 ├── types/          # TypeScript definitions
-├── utils/          # Utilities (LLM, DB, etc.)
-└── example/        # Example implementations
-    ├── example.ts
-    └── test-twitter.js
+├── utils/          # Helper functions
+│   ├── llm.ts      # LLM interactions
+│   ├── memory.ts   # Memory management
+│   ├── db.ts       # Database utilities
+│   └── initDb.ts   # DB initialization
+└── example/        # Implementation examples
 
 clients/
-└── twitter/        # Twitter client implementation
-    ├── client.js
-    ├── base.js
-    └── utils.js
-
-prisma/             # Database schema and migrations
-└── schema.prisma
+└── twitter/        # Twitter integration
+    ├── client.js   # Main client class
+    ├── base.js     # Core functionality
+    └── utils.js    # Helper functions
 ```
 
-## Getting Started
+## Available Scripts
 
 ```bash
-# Install dependencies
-pnpm install
+# Build the project
+npm run build
 
-# Copy environment example
-cp .env.example .env
+# Start production
+npm start
 
-# Initialize database
-npm run init-db
-
-# Start development
+# Development with auto-reload
 npm run dev
+
+# Test Twitter integration
+npm run twitter
+
+# Database management
+npm run db:init    # Initialize database
+npm run db:reset   # Reset database
+npm run prisma:studio  # Database UI
 ```
 
-## Environment Setup
+## Our Philosophy
 
-Copy `.env.example` to `.env` and fill in your values:
-
-```bash
-# Database
-DATABASE_URL="file:./prisma/dev.db"
-
-# LLM APIs
-OPENAI_API_KEY="your-openai-key"
-OPENROUTER_API_KEY="your-openrouter-key"
-
-# Application
-APP_URL="http://localhost:3000"
-
-# Twitter (Optional)
-TWITTER_USERNAME="your-username"
-TWITTER_PASSWORD="your-password"
-TWITTER_EMAIL="your-email"
-TWITTER_2FA_SECRET="optional-2fa-secret"
-```
-
-## Coming Soon
-
-1. **Vector Store Template**
-
-   - Example implementation with Pinecone
-   - Semantic search across memories
-   - Easy to swap vector store backends
-
-2. **Twitter Bot Template** ✓
-   - Basic Twitter bot implementation ✓
-   - Interaction handling examples ✓
-   - Thread management utilities ✓
+We believe the best way to build AI agents is to work closely with the prompts and build a set of composable units that can be strung together to make powerful agentic loops. Our approach is informed by Anthropic's research on constructing reliable AI systems.
 
 ## Contributing
 
@@ -206,8 +269,12 @@ While Liz is meant to be forked and modified, we welcome contributions to the ba
 2. Create your feature branch
 3. Commit your changes
 4. Push to the branch
-5. Create a Pull Request
+5. Open a Pull Request
 
 ## License
 
 MIT
+
+---
+
+Visit [akrasia.ai/liz](https://akrasia.ai/liz) to learn more.
