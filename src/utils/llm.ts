@@ -120,6 +120,68 @@ export class LLMUtils {
 		return response.data.choices[0].message.content;
 	}
 
+	/**
+	 * Streams the LLM response in real-time using SSE from OpenRouter.
+	 *
+	 * @param prompt The user prompt string.
+	 * @param model The model to use (e.g., "gpt-4o" or "gpt-4o-mini").
+	 * @param onToken Callback that receives each partial token as it arrives.
+	 * @returns A Promise that resolves once the stream is completed.
+	 */
+	async getTextFromLLMStream(
+		prompt: string,
+		model: string,
+		onToken: (token: string) => void
+	): Promise<void> {
+		try {
+			const response = await axios.post(
+				"https://openrouter.ai/api/v1/chat/completions",
+				{
+					model,
+					messages: [
+						{
+							role: "user",
+							content: prompt,
+						},
+					],
+					// Enable streaming
+					stream: true,
+				},
+				{
+					headers: {
+						Authorization: `Bearer ${this.openrouterApiKey}`,
+						"Content-Type": "application/json",
+						"HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
+					},
+					// Needed to parse the SSE stream
+					responseType: "stream",
+				}
+			);
+
+			return new Promise<void>((resolve, reject) => {
+				// Listen for data events on the response stream
+				response.data.on("data", (chunk: Buffer) => {
+					parseSSEChunk(chunk, onToken);
+				});
+
+				// The stream has ended
+				response.data.on("end", () => {
+					resolve();
+				});
+
+				// Handle errors
+				response.data.on("error", (error: unknown) => {
+					reject(error);
+				});
+			});
+		} catch (error) {
+			if (axios.isAxiosError(error)) {
+				throw new Error(`OpenRouter API error: ${error.message}`);
+			}
+			throw error;
+		}
+	}
+
 	async getObjectFromLLMWithImages<T>(
 		prompt: string,
 		schema: z.ZodSchema<T>,
@@ -266,6 +328,83 @@ export class LLMUtils {
 		}
 	}
 
+	/**
+	 * Streams the LLM response in real-time using SSE from OpenRouter,
+	 * including base64-encoded images in the request.
+	 *
+	 * @param prompt The user prompt string.
+	 * @param imageUrls Array of URLs for the images you want to attach.
+	 * @param model The model to use (e.g., "gpt-4o" or "gpt-4o-mini").
+	 * @param onToken Callback that receives each partial token as it arrives.
+	 * @returns A Promise that resolves once the stream is completed.
+	 */
+	async getTextWithImageFromLLMStream(
+		prompt: string,
+		imageUrls: string[],
+		model: string,
+		onToken: (token: string) => void
+	): Promise<void> {
+		const base64Images = await convertUrlsToBase64(imageUrls);
+		if (base64Images.length === 0) {
+			throw new Error("Failed to process images");
+		}
+
+		try {
+			const response = await axios.post(
+				"https://openrouter.ai/api/v1/chat/completions",
+				{
+					model,
+					messages: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "text",
+									text: prompt,
+								},
+								...base64Images.map((image) => ({
+									type: "image_url",
+									image_url: {
+										url: `data:${image.contentType};base64,${image.base64}`,
+									},
+								})),
+							],
+						},
+					],
+					stream: true,
+					max_tokens: 1000,
+				},
+				{
+					headers: {
+						Authorization: `Bearer ${this.openrouterApiKey}`,
+						"Content-Type": "application/json",
+						"HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
+					},
+					responseType: "stream",
+				}
+			);
+
+			return new Promise<void>((resolve, reject) => {
+				response.data.on("data", (chunk: Buffer) => {
+					parseSSEChunk(chunk, onToken);
+				});
+
+				response.data.on("end", () => {
+					resolve();
+				});
+
+				response.data.on("error", (error: unknown) => {
+					reject(error);
+				});
+			});
+		} catch (error) {
+			if (axios.isAxiosError(error)) {
+				throw new Error(`OpenRouter API error: ${error.message}`);
+			}
+			throw error;
+		}
+	}
+
 	async getImageDescriptions(
 		imageUrls: string[],
 		model: string = "openai/gpt-4o"
@@ -368,4 +507,43 @@ async function convertUrlsToBase64(
 		}
 	}
 	return base64Images;
+}
+
+/**
+ * Parses a data stream of SSE lines from OpenRouter.
+ *
+ * @param chunk The chunk of data (a portion of the SSE event stream).
+ * @param onToken Callback to handle each token (partial text).
+ */
+function parseSSEChunk(chunk: Buffer, onToken: (token: string) => void) {
+	const raw = chunk.toString("utf-8");
+	const lines = raw.split("\n");
+
+	for (const line of lines) {
+		if (!line || line.trim().length === 0) {
+			continue;
+		}
+		// "data: [DONE]" indicates the end of the stream
+		if (line.trim() === "data: [DONE]") {
+			return; // you could handle a cleanup or a "done" signal here if needed
+		}
+		if (line.startsWith("data: ")) {
+			// Each line after "data:" should be valid JSON, e.g.:
+			// data: {"id":"...","object":"...","created":...,"choices":[...]...}
+			const jsonString = line.substring("data: ".length).trim();
+			try {
+				const parsed = JSON.parse(jsonString);
+				if (parsed.choices && parsed.choices.length > 0) {
+					// The partial token usually appears in choices[0].delta.content
+					const token = parsed.choices[0].delta?.content;
+					if (token) {
+						onToken(token);
+					}
+				}
+			} catch (err) {
+				// If some lines are not valid JSON, you can handle or ignore them
+				console.error("Failed to parse SSE line:", line, err);
+			}
+		}
+	}
 }
