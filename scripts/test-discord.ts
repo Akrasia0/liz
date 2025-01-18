@@ -33,29 +33,36 @@ async function main() {
     try {
       console.log("Testing Discord client functionality...");
       
-      // Test 1: Send basic message
-      console.log("Test 1: Sending basic message...");
-      await client.sendMessage("ca1zar", "Hello! This is a test message from the Discord bot.");
-      console.log("Basic message sent successfully");
+      console.log("Waiting for Discord ID to test messaging functionality...");
+      // Note: Replace USER_ID with the actual Discord user ID when provided
+      const targetUserId = process.env.DISCORD_TEST_USER_ID;
       
-      // Test 2: Rate limiting (send messages in quick succession)
-      console.log("Test 2: Testing rate limiting...");
-      const messages = [
-        "Test message 1 - Testing rate limiting",
-        "Test message 2 - Should be delayed by 1000ms",
-        "Test message 3 - Should be delayed by 1000ms"
-      ];
-      
-      for (const msg of messages) {
-        await client.sendMessage("ca1zar", msg);
-        console.log(`Sent message: ${msg}`);
+      if (!targetUserId) {
+        console.log("No test user ID provided. Please set DISCORD_TEST_USER_ID environment variable.");
+        return;
       }
-      
-      console.log("All test messages sent successfully");
+
+      try {
+        // Test 1: Basic message sending
+        console.log("Test 1: Sending basic message...");
+        await client.sendMessage(targetUserId, "Hello! This is a test message from the Discord bot.");
+        console.log("Basic message sent successfully");
+        
+        // Test 2: Rate limiting (single message for now)
+        console.log("Test 2: Testing rate limiting...");
+        await client.sendMessage(targetUserId, "This is a follow-up message (should be delayed by 1000ms)");
+        console.log("Rate-limited message sent successfully");
+      } catch (error) {
+        console.error("Error during message tests:", error);
+      }
     } catch (error) {
       console.error("Error in Discord client tests:", error);
-      if (error.code === 50035) {
-        console.error("Invalid user ID format. Make sure to use Discord's snowflake ID format.");
+      // Type guard for Discord API errors
+      if (error && typeof error === 'object' && 'code' in error) {
+        const discordError = error as { code: number };
+        if (discordError.code === 50035) {
+          console.error("Invalid user ID format. Make sure to use Discord's snowflake ID format.");
+        }
       }
     }
   }, 5000);
