@@ -33,9 +33,10 @@ async function main() {
     try {
       console.log("Testing Discord client functionality...");
       
-      // Test 1: Basic message
+      // Test 1: Send basic message
       console.log("Test 1: Sending basic message...");
       await client.sendMessage("ca1zar", "Hello! This is a test message from the Discord bot.");
+      console.log("Basic message sent successfully");
       
       // Test 2: Rate limiting (send messages in quick succession)
       console.log("Test 2: Testing rate limiting...");
@@ -47,11 +48,15 @@ async function main() {
       
       for (const msg of messages) {
         await client.sendMessage("ca1zar", msg);
+        console.log(`Sent message: ${msg}`);
       }
       
       console.log("All test messages sent successfully");
     } catch (error) {
       console.error("Error in Discord client tests:", error);
+      if (error.code === 50035) {
+        console.error("Invalid user ID format. Make sure to use Discord's snowflake ID format.");
+      }
     }
   }, 5000);
   

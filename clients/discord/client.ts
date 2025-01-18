@@ -130,20 +130,53 @@ export class DiscordClient extends DiscordBase {
   }
 
   /**
+   * Find a user by their username
+   * @param username Discord username to search for
+   * @returns Discord user ID if found
+   */
+  async findUserByUsername(username: string): Promise<string> {
+    try {
+      const guild = this.discordClient.guilds.cache.first();
+      if (!guild) {
+        throw new Error("Bot is not in any guilds");
+      }
+      
+      const members = await guild.members.fetch();
+      const member = members.find(m => m.user.username.toLowerCase() === username.toLowerCase());
+      
+      if (!member) {
+        throw new Error(`User ${username} not found`);
+      }
+      
+      return member.user.id;
+    } catch (error) {
+      console.error(`Error finding user ${username}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Send a message to a Discord user
-   * @param userId User's Discord ID or username
+   * @param userIdOrUsername User's Discord ID or username
    * @param content Message content
    */
-  async sendMessage(userId: string, content: string): Promise<void> {
+  async sendMessage(userIdOrUsername: string, content: string): Promise<void> {
     try {
+      let userId = userIdOrUsername;
+      
+      // If not a snowflake ID, try to find user by username
+      if (!/^\d+$/.test(userIdOrUsername)) {
+        userId = await this.findUserByUsername(userIdOrUsername);
+      }
+      
       const message = await this.sendDirectMessage(userId, content);
       if (message) {
-        console.log(`Message sent to ${userId}: ${content}`);
+        console.log(`Message sent to ${userIdOrUsername} (${userId}): ${content}`);
       } else {
         throw new Error("Failed to send message");
       }
     } catch (error) {
-      console.error(`Error sending message to ${userId}:`, error);
+      console.error(`Error sending message to ${userIdOrUsername}:`, error);
       throw error;
     }
   }
