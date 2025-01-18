@@ -1,4 +1,8 @@
 import { DiscordClient } from "../clients/discord/client";
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const config = {
   botToken: process.env.DISCORD_BOT_TOKEN!,
@@ -7,6 +11,8 @@ const config = {
   pollingInterval: 1,
   dryRun: false
 };
+
+console.log("Bot token:", process.env.DISCORD_BOT_TOKEN ? "Found" : "Missing");
 
 async function main() {
   console.log("Starting Discord client test...");
