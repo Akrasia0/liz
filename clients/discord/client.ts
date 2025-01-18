@@ -136,19 +136,19 @@ export class DiscordClient extends DiscordBase {
    */
   async findUserByUsername(username: string): Promise<string> {
     try {
-      const guild = this.discordClient.guilds.cache.first();
-      if (!guild) {
-        throw new Error("Bot is not in any guilds");
+      // First try to find in cache
+      const cachedUser = this.discordClient.users.cache.find(
+        u => u.username.toLowerCase() === username.toLowerCase()
+      );
+      
+      if (cachedUser) {
+        return cachedUser.id;
       }
-      
-      const members = await guild.members.fetch();
-      const member = members.find(m => m.user.username.toLowerCase() === username.toLowerCase());
-      
-      if (!member) {
-        throw new Error(`User ${username} not found`);
-      }
-      
-      return member.user.id;
+
+      // If not in cache, we'll need the user's ID
+      // For now, since we don't have a way to search by username,
+      // we'll need to request the ID from the user
+      throw new Error(`Unable to find user ${username}. Please provide the user's Discord ID directly.`);
     } catch (error) {
       console.error(`Error finding user ${username}:`, error);
       throw error;
