@@ -128,4 +128,23 @@ export class DiscordClient extends DiscordBase {
     // Implement any periodic checks or maintenance tasks here
     console.log("Checking for pending tasks...");
   }
+
+  /**
+   * Send a message to a Discord user
+   * @param userId User's Discord ID or username
+   * @param content Message content
+   */
+  async sendMessage(userId: string, content: string): Promise<void> {
+    try {
+      const message = await this.sendDirectMessage(userId, content);
+      if (message) {
+        console.log(`Message sent to ${userId}: ${content}`);
+      } else {
+        throw new Error("Failed to send message");
+      }
+    } catch (error) {
+      console.error(`Error sending message to ${userId}:`, error);
+      throw error;
+    }
+  }
 }
