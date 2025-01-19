@@ -1,5 +1,8 @@
 import { prisma } from "./db";
 
+/**
+ * Interface representing Twitter data structure
+ */
 export interface TweetData {
 	id: string;
 	text: string;
@@ -10,6 +13,9 @@ export interface TweetData {
 	permanentUrl?: string;
 }
 
+/**
+ * Creates a new Twitter memory entry in the database
+ */
 export async function createTwitterMemory(
 	userId: string,
 	agentId: string,
@@ -29,6 +35,9 @@ export async function createTwitterMemory(
 	});
 }
 
+/**
+ * Checks if a tweet with the given ID exists in the database
+ */
 export async function doesTweetExist(tweetId: string): Promise<boolean> {
 	const count = await prisma.tweet.count({
 		where: { id: tweetId },
@@ -80,6 +89,9 @@ export async function getRecentTweets(userId: string, limit: number = 10) {
 	});
 }
 
+/**
+ * Interface representing Discord message data structure
+ */
 export interface DiscordMessageData {
 	id: string;
 	content: string;
@@ -108,7 +120,9 @@ export async function createDiscordMemory(
 	});
 }
 
-export async function doesDiscordMessageExist(messageId: string): Promise<boolean> {
+export async function doesDiscordMessageExist(
+	messageId: string
+): Promise<boolean> {
 	const count = await prisma.discordMessage.count({
 		where: { id: messageId },
 	});
@@ -143,7 +157,10 @@ export async function getDiscordMessageById(messageId: string) {
 	});
 }
 
-export async function getRecentDiscordMessages(userId: string, limit: number = 10) {
+export async function getRecentDiscordMessages(
+	userId: string,
+	limit: number = 10
+) {
 	return prisma.discordMessage.findMany({
 		where: { userId },
 		orderBy: { createdAt: "desc" },
