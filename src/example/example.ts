@@ -12,6 +12,7 @@ import { TwitterClient } from "../../clients/twitter";
 import dotenv from "dotenv";
 
 dotenv.config(); // Load environment variables
+const PORT = process.env.SERVER_PORT;
 
 // Initialize Express and framework
 const app: Express = express();
@@ -121,7 +122,6 @@ async function startCLI() {
 	prompt();
 }
 
-const PORT = process.env.PORT || 3000;
 let server: any;
 
 // Initialize and start Twitter client

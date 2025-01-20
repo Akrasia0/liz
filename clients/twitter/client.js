@@ -2,7 +2,9 @@ const { TwitterBase } = require("./base");
 const { buildConversationThread, sendThreadedTweet } = require("./utils");
 const axios = require("axios");
 const { storeTweetIfNotExists } = require("../../dist/utils/memory");
+require("dotenv").config();
 
+const PORT = process.env.SERVER_PORT;
 class TwitterClient extends TwitterBase {
 	constructor(agent, config) {
 		super(agent, config);
@@ -161,7 +163,7 @@ class TwitterClient extends TwitterBase {
 	}
 
 	async fetchTweetContent(payload) {
-		const url = "http://localhost:3000/agent/input";
+		const url = `http://localhost:${PORT}/agent/input`;
 		const body = {
 			input: {
 				agentId: payload.agentId,
