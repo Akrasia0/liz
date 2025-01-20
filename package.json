@@ -5,7 +5,9 @@
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
-		"build": "tsc && cd clients/twitter && tsc",
+		"build": "tsc && cd clients/twitter && tsc && cd ../discord && tsc",
+		"discord": "ts-node scripts/test-discord.ts",
+		"test:server": "ts-node scripts/test-server.ts",
 		"prestart": "npm run build && npm run db:init",
 		"start": "node dist/example/example.js",
 		"predev": "npm run build && npm run db:init",
@@ -31,6 +33,7 @@
 	"dependencies": {
 		"@prisma/client": "^5.7.0",
 		"axios": "^1.7.9",
+		"discord.js": "^14.17.3",
 		"dotenv": "^16.4.7",
 		"express": "^4.21.2",
 		"node-fetch": "^3.3.2",
