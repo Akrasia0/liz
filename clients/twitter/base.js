@@ -1,18 +1,21 @@
 const { EventEmitter } = require("events");
 const { Scraper } = require("agent-twitter-client");
 
+// Twitter client configuration
+
 /**
  * @typedef {Object} Tweet
  * @property {string} id - Tweet ID
  * @property {string} name - Author's display name
  * @property {string} username - Author's username
  * @property {string} text - Tweet content
- * @property {number} timestamp - Unix timestamp
+ * @property {number} timestamp - Unix timestamp in seconds
  * @property {string} userId - Author's user ID
  * @property {string} conversationId - Conversation thread ID
  * @property {string} inReplyToStatusId - ID of parent tweet if reply
  * @property {string} permanentUrl - Permanent URL to tweet
  * @property {string[]} [imageUrls] - Optional array of image URLs
+ * @property {Object} [metrics] - Optional engagement metrics
  */
 
 class RequestQueue {
@@ -45,6 +48,7 @@ class RequestQueue {
 	 * @returns {Promise<void>}
 	 */
 	async processQueue() {
+		// Skip if already processing or queue is empty
 		if (this.processing || this.queue.length === 0) return;
 
 		this.processing = true;
@@ -52,10 +56,12 @@ class RequestQueue {
 			const request = this.queue.shift();
 			try {
 				await request();
-				await this.delay(1000); // Rate limiting delay
+				// Standard rate limiting delay
+				await this.delay(1000);
 			} catch (error) {
 				console.error("Error processing request:", error);
-				await this.delay(2000); // Backoff on error
+				// Increased backoff on error
+				await this.delay(2000);
 			}
 		}
 		this.processing = false;
