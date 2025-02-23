@@ -131,6 +131,35 @@ await twitter.start();
 
 ## Core Components
 
+### Looker Module
+
+The Looker module provides content analysis and character management capabilities:
+
+```typescript
+// Initialize the Looker
+const looker = new Looker({
+	modelName: "anthropic/claude-3.5-sonnet",
+	temperature: 0.7,
+	characterId: "default-character",
+});
+
+// Analyze content
+const insights = await looker.analyzeContent(textContent);
+
+// Get character information
+const character = await looker.getCharacterInfo();
+
+// Summarize tweets
+const summary = await looker.summarizeTweets(tweetIds);
+```
+
+Key features:
+
+- Content analysis for understanding themes and sentiment
+- Character configuration for consistent personality
+- Tweet summarization for better context management
+- Extensible design for custom analysis pipelines
+
 ### Memory System
 
 The memory system uses Prisma with SQLite (or PostgreSQL) to maintain conversation context:
@@ -221,6 +250,9 @@ src/
 │   └── router.ts          # Route handling
 ├── agent/           # Core agent logic
 ├── framework/       # Express-style system
+├── looker/          # Content analysis system
+│   ├── looker.ts    # Analysis utilities
+│   └── character.json # Character configuration
 ├── types/          # TypeScript definitions
 ├── utils/          # Helper functions
 │   ├── llm.ts      # LLM interactions
@@ -260,7 +292,6 @@ npm run prisma:studio  # Database UI
 ## Our Philosophy
 
 We believe the best way to build AI agents is to work closely with the prompts and build a set of composable units that can be strung together to make powerful agentic loops. Our approach is informed by Anthropic's research on constructing reliable AI systems.
-
 
 ## Contributing
 
