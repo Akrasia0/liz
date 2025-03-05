@@ -1,3 +1,11 @@
+/**
+ * LLM Utilities Module
+ *
+ * This module provides a unified interface for interacting with various LLM providers,
+ * including OpenAI and OpenRouter. It supports text generation, structured output,
+ * boolean responses, and image analysis capabilities.
+ */
+
 import OpenAI from "openai";
 import axios from "axios";
 import { z } from "zod";
@@ -5,6 +13,9 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import { LLMSize } from "../types";
 import { ChatCompletionContentPartImage } from "openai/resources/chat/completions";
 
+/**
+ * Interface for OpenRouter API responses
+ */
 interface OpenRouterResponse {
 	choices: Array<{
 		message: {
@@ -13,12 +24,19 @@ interface OpenRouterResponse {
 	}>;
 }
 
+/**
+ * Zod schema for boolean responses with explanations
+ */
 const booleanSchema = z.object({
 	result: z.boolean(),
 	explanation: z.string(),
 });
 
-// Why JSON responses only from OpenAI? Because the other SDKs are unreliable.
+/**
+ * LLMUtils class provides methods for interacting with language models
+ *
+ * Note: We use JSON responses only from OpenAI because the other SDKs are unreliable.
+ */
 export class LLMUtils {
 	private openai: OpenAI;
 	private openrouterApiKey: string;
@@ -36,6 +54,13 @@ export class LLMUtils {
 		this.openrouterApiKey = openrouterApiKey;
 	}
 
+	/**
+	 * Gets a boolean response from the LLM with explanation
+	 *
+	 * @param prompt The prompt to send to the LLM
+	 * @param size The size of the model to use (LARGE or SMALL)
+	 * @returns A boolean result based on the LLM's analysis
+	 */
 	async getBooleanFromLLM(prompt: string, size: LLMSize): Promise<boolean> {
 		const model = size === LLMSize.LARGE ? "gpt-4o" : "gpt-4o-mini";
 		const response = await this.openai.beta.chat.completions.parse({
@@ -62,6 +87,14 @@ export class LLMUtils {
 		return analysis.result;
 	}
 
+	/**
+	 * Gets a structured object response from the LLM based on a Zod schema
+	 *
+	 * @param prompt The prompt to send to the LLM
+	 * @param schema The Zod schema that defines the expected response structure
+	 * @param size The size of the model to use (LARGE or SMALL)
+	 * @returns A typed object matching the provided schema
+	 */
 	async getObjectFromLLM<T>(
 		prompt: string,
 		schema: z.ZodSchema<T>,
@@ -92,6 +125,13 @@ export class LLMUtils {
 		return JSON.parse(response.choices[0].message.content);
 	}
 
+	/**
+	 * Gets a free-form text response from the LLM via OpenRouter
+	 *
+	 * @param prompt The prompt to send to the LLM
+	 * @param model The model identifier (e.g., "anthropic/claude-3.5-sonnet")
+	 * @returns The generated text response
+	 */
 	async getTextFromLLM(prompt: string, model: string): Promise<string> {
 		const response = await axios.post(
 			"https://openrouter.ai/api/v1/chat/completions",
