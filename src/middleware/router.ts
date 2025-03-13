@@ -3,18 +3,29 @@ import { LLMUtils } from "../utils/llm";
 import { z } from "zod";
 import { LLMSize } from "../types";
 
+// Constants
+const CONFIDENCE_THRESHOLD = 0.7;
+
+/**
+ * Schema for route selection response from LLM
+ */
 const routeSchema = z.object({
 	selectedRoute: z.string(),
-	confidence: z.number(),
+	confidence: z.number().min(0).max(1),
 	reasoning: z.string(),
 });
 
+/**
+ * Router middleware that uses LLM to determine the appropriate route handler
+ * based on the incoming request and available routes
+ */
 export const router: AgentMiddleware = async (req, res, next) => {
 	try {
+		// Initialize LLM utilities and get available routes
 		const llmUtils = new LLMUtils();
 		const routes = req.agent.getRoutes();
 
-		// Create route descriptions for LLM
+		// Format route descriptions for the LLM prompt
 		const routeDescriptions = routes
 			.map((route: Route) => `"${route.name}": ${route.description}`)
 			.join("\n");
@@ -56,17 +67,21 @@ Respond with a JSON object containing:
 			);
 		}
 
-		if (routeDecision.confidence < 0.7) {
+		// Check if confidence level meets threshold
+		if (routeDecision.confidence < CONFIDENCE_THRESHOLD) {
 			console.warn(
 				`Low confidence (${routeDecision.confidence}) for route: ${routeDecision.selectedRoute}`
 			);
 			console.warn(`Reasoning: ${routeDecision.reasoning}`);
 		}
 
+		// Execute the selected route handler
 		try {
+			// Call the handler with context and request/response objects
 			await handler.handler(req.context || "", req, res);
 			await next();
 		} catch (error) {
+			// Handle errors from the route handler
 			await res.error(
 				new Error(
 					`Route handler error (${routeDecision.selectedRoute}): ${
