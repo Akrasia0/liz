@@ -1,7 +1,8 @@
-import { Message } from "discord.js";
+import { Message, MessageOptions, MessagePayload } from "discord.js";
 import { DiscordBase, DiscordConfig } from "./base";
 import axios from "axios";
 import { InputSource, InputType } from "../../src/types";
+import { createDiscordMemory } from "../../src/utils/memory";
 
 export class DiscordClient extends DiscordBase {
   private checkInterval: NodeJS.Timeout | null = null;
@@ -13,6 +14,7 @@ export class DiscordClient extends DiscordBase {
 
   /**
    * Start the Discord client and begin listening for messages
+   * @returns Promise that resolves when the client is ready
    */
   async start(): Promise<void> {
     await this.init();
@@ -158,15 +160,30 @@ export class DiscordClient extends DiscordBase {
   /**
    * Send a message to a Discord user
    * @param userIdOrUsername User's Discord ID or username
-   * @param content Message content
+   * @param content Message content or options
+   * @returns Promise that resolves when the message is sent
    */
-  async sendMessage(userIdOrUsername: string, content: string): Promise<void> {
+  async sendMessage(
+    userIdOrUsername: string, 
+    content: string | MessagePayload | MessageOptions
+  ): Promise<void> {
     try {
       let userId = userIdOrUsername;
       
       // If not a snowflake ID, try to find user by username
       if (!/^\d+$/.test(userIdOrUsername)) {
         userId = await this.findUserByUsername(userIdOrUsername);
+      }
+      
+      // Store message in memory for context
+      if (typeof content === 'string') {
+        await createDiscordMemory(
+          `discord_user_${userId}`,
+          this.config.agentId,
+          `discord_dm_${userId}`,
+          `Sent: ${content}`,
+          "external"
+        );
       }
       
       const message = await this.sendDirectMessage(userId, content);
