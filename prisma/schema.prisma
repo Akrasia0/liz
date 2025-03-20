@@ -1,10 +1,14 @@
+// Database configuration
 datasource db {
   provider = "sqlite" // Set to "postgresql" for postgres
   url      = env("DATABASE_URL")
 }
 
+// Client generator configuration
 generator client {
   provider = "prisma-client-js"
+  // Enable native database types for better performance
+  previewFeatures = ["nativeTypes"]
 }
 
 model Memory {
@@ -31,9 +35,14 @@ model Tweet {
   inReplyToId     String?
   createdAt       DateTime @default(now())
   permanentUrl    String?
-  
+  likeCount       Int?     @default(0)
+  retweetCount    Int?     @default(0)
+  replyCount      Int?     @default(0)
+  viewCount       Int?     @default(0)
+
   @@index([userId])
   @@index([conversationId])
+  @@index([createdAt])
 }
 
 model DiscordMessage {
