@@ -1,8 +1,17 @@
 import { DiscordClient } from "../clients/discord/client";
 import dotenv from 'dotenv';
+import path from 'path';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from .env file
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+// Configure logging
+const DEBUG = process.env.DEBUG === 'true';
+function log(message: string, ...args: any[]) {
+  if (DEBUG) {
+    console.log(`[DEBUG] ${message}`, ...args);
+  }
+}
 
 const config = {
   botToken: process.env.DISCORD_BOT_TOKEN!,
@@ -12,7 +21,9 @@ const config = {
   dryRun: false
 };
 
+log("Environment variables loaded");
 console.log("Bot token:", process.env.DISCORD_BOT_TOKEN ? "Found" : "Missing");
+console.log("Test user ID:", process.env.DISCORD_TEST_USER_ID ? "Found" : "Missing");
 
 async function main() {
   console.log("Starting Discord client test...");
@@ -47,11 +58,20 @@ async function main() {
         console.log("Test 1: Sending basic message...");
         await client.sendMessage(targetUserId, "Hello! This is a test message from the Discord bot.");
         console.log("Basic message sent successfully");
-        
+
         // Test 2: Rate limiting (single message for now)
         console.log("Test 2: Testing rate limiting...");
         await client.sendMessage(targetUserId, "This is a follow-up message (should be delayed by 1000ms)");
         console.log("Rate-limited message sent successfully");
+        
+        // Test 3: Message with formatting
+        console.log("Test 3: Testing message with formatting...");
+        await client.sendMessage(
+          targetUserId, 
+          "This message has **bold text**, *italics*, and `code blocks`.\n" +
+          "It also has multiple lines and a [link](https://example.com)."
+        );
+        console.log("Formatted message sent successfully");
       } catch (error) {
         console.error("Error during message tests:", error);
       }
