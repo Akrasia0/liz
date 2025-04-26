@@ -20,7 +20,7 @@ Liz is a lightweight framework for building AI agents, reimagined for developers
 1. **Clone and Install**
 
    ```bash
-   git clone <your-repo>
+   git clone https://github.com/Akrasia0/liz
    cd liz
    pnpm install
    ```
